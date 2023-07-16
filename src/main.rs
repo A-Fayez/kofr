@@ -1,11 +1,19 @@
+use serde::Deserialize;
 use std::env;
 
-fn main() {
+fn main() -> Result<(), ureq::Error> {
     let uri = env::var("CONNECT_URI").expect("env var CONNECT_URI not found");
+    let connectors = ureq::get(&uri)
+        .set("Accept", "application/json")
+        .call()?
+        .into_string()?;
 
-    let body = reqwest::blocking::get(uri)
-        .unwrap()
-        .text()
-        .unwrap();
-    println!("body = {:?}", body);
+    println!("{}", connectors);
+
+    Ok(())
+}
+
+#[derive(Deserialize)]
+struct Connector {
+    name: String,
 }
