@@ -90,6 +90,7 @@ name = "kofr"
 version = "0.1.0"
 dependencies = [
  "serde 0.9.15",
+ "serde_json",
  "ureq",
 ]
 
