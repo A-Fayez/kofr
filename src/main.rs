@@ -1,27 +1,28 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::env;
 use std::fmt;
 
 fn main() -> Result<(), ureq::Error> {
     let uri = env::var("CONNECT_URI").expect("env var CONNECT_URI not found");
-    let connectors: serde_json::Value = ureq::get(&uri)
+    let connectors = ureq::get(&uri)
         .set("Accept", "application/json")
         .call()?
-        .into_json()?;
+        .into_json::<serde_json::Value>()?;
+
+    let connectors = connectors.as_array().unwrap();
+
+    // println!("{}", connectors[0]);
 
     let mut connectors_vec: Vec<Connector> = Vec::new();
-    let test = connectors.as_array().unwrap();
-
-    for (i, c) in connectors.as_array().unwrap().into_iter().enumerate() {
-        let connector_name: String = serde_json::from_value(*c.get(i).unwrap()).unwrap();
+    for (i, c) in connectors.into_iter().enumerate() {
+        let connector_name: String = serde_json::from_value(c.to_owned()).unwrap();
         connectors_vec.push(Connector {
-            name: connector_name,
+            name: (connector_name),
         });
     }
 
-    for c in connectors_vec {
-        println!("{}", c);
+    for c in &connectors_vec {
+        println!("{}", *c);
     }
 
     Ok(())
@@ -34,6 +35,6 @@ struct Connector {
 
 impl fmt::Display for Connector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "Type -> {}", self.name)
     }
 }
