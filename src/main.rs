@@ -1,9 +1,13 @@
-use kofr::get_connectors;
 use std::env;
 use std::time::Duration;
 use ureq::Agent;
 
-fn main() -> Result<(), ureq::Error> {
+mod error;
+use error::{KofrError, Result};
+
+use kofr::get_all_connectors;
+
+fn main() -> Result<()> {
     let uri = env::var("CONNECT_URI").expect("env var CONNECT_URI not found");
 
     let agent: Agent = ureq::AgentBuilder::new()
@@ -11,7 +15,8 @@ fn main() -> Result<(), ureq::Error> {
         .timeout_write(Duration::from_secs(5))
         .build();
 
-    let connectors_vec = get_connectors(&agent, &uri);
+    let connectors_vec =
+        get_all_connectors(&agent, &uri).map_err(|_| KofrError::DeserializeConnectorError);
 
     for c in &connectors_vec {
         dbg!(c);
