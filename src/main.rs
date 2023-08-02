@@ -3,7 +3,7 @@ use std::time::Duration;
 use ureq::Agent;
 
 mod error;
-use error::{KofrError, Result};
+use error::Result;
 
 use kofr::get_all_connectors;
 
@@ -16,7 +16,7 @@ fn main() -> Result<()> {
         .build();
 
     let connectors_vec =
-        get_all_connectors(&agent, &uri).map_err(|_| KofrError::DeserializeConnectorError);
+        get_all_connectors(&agent, &uri).unwrap();
 
     for c in &connectors_vec {
         dbg!(c);
