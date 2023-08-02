@@ -3,7 +3,7 @@ use std::time::Duration;
 use ureq::Agent;
 
 mod error;
-use error::Result;
+use anyhow::Result;
 
 use kofr::get_all_connectors;
 
@@ -15,8 +15,7 @@ fn main() -> Result<()> {
         .timeout_write(Duration::from_secs(5))
         .build();
 
-    let connectors_vec =
-        get_all_connectors(&agent, &uri).unwrap();
+    let connectors_vec = get_all_connectors(&agent, &uri)?;
 
     for c in &connectors_vec {
         dbg!(c);
