@@ -16,7 +16,7 @@ impl Client {
     }
 
     pub fn list_connectors(&self) -> Result<Vec<ConnectorName>> {
-        let _endpoint = &format!("{}/connectors", self.config.connect_uri);
+        let _endpoint = &format!("{}connectors", self.config.connect_uri);
         let connectors = self
             .config
             .http_agent
@@ -35,8 +35,8 @@ impl Client {
         Ok(connectors)
     }
 
-    pub fn create_connector(&self, c: CreateConnector) -> Result<Connector> {
-        let _endpoint = &format!("{}/connectors", self.config.connect_uri);
+    pub fn create_connector(&self, c: &CreateConnector) -> Result<Connector> {
+        let _endpoint = &format!("{}connectors", self.config.connect_uri);
         let returned_connector = self
             .config
             .http_agent
@@ -114,5 +114,111 @@ impl From<&CreateConnector> for Connector {
             tasks: (tasks),
             connector_type: (c_type),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use kcmockserver::KcTestServer;
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn test_listing_connectors_should_return_empty_vec() {
+        let server = KcTestServer::new();
+        let agent: Agent = ureq::AgentBuilder::new()
+            .timeout_read(Duration::from_secs(5))
+            .timeout_write(Duration::from_secs(5))
+            .build();
+
+        let client = Client::from_config(Config {
+            http_agent: (agent),
+            connect_uri: (server.base_url().to_string()),
+        });
+
+        let connectors_vec = tokio::task::spawn_blocking(move || client.list_connectors().unwrap())
+            .await
+            .unwrap();
+        assert_eq!(connectors_vec, Vec::new());
+    }
+
+    #[tokio::test]
+    async fn test_creating_a_connector_should_return_the_right_connector() {
+        let server = KcTestServer::new();
+        let agent: Agent = ureq::AgentBuilder::new()
+            .timeout_read(Duration::from_secs(5))
+            .timeout_write(Duration::from_secs(5))
+            .build();
+
+        let client = Client::from_config(Config {
+            http_agent: (agent),
+            connect_uri: (server.base_url().to_string()),
+        });
+
+        let c = r#"
+        {
+            "name": "sink-connector",
+            "config": {
+                "tasks.max": "10",
+                "connector.class": "com.example.kafka",
+                "name": "sink-connector"
+            }
+        }"#;
+
+        let c = serde_json::from_str(c).unwrap();
+        let expected_connector = Connector::from(&c);
+
+        let returned_connector =
+            tokio::task::spawn_blocking(move || client.create_connector(&c).unwrap())
+                .await
+                .unwrap();
+
+        assert_eq!(returned_connector, expected_connector);
+    }
+
+    #[tokio::test]
+    async fn test_listing_mutliple_connectors() {
+        let server = KcTestServer::new();
+        let agent: Agent = ureq::AgentBuilder::new()
+            .timeout_read(Duration::from_secs(5))
+            .timeout_write(Duration::from_secs(5))
+            .build();
+
+        let client = Client::from_config(Config {
+            http_agent: (agent),
+            connect_uri: (server.base_url().to_string()),
+        });
+
+        let a = r#"
+        {
+            "name": "sink-connector",
+            "config": {
+                "tasks.max": "10",
+                "connector.class": "com.example.kafka",
+                "name": "sink-connector"
+            }
+        }"#;
+        let b = r#"
+        {
+            "name": "source-connector",
+            "config": {
+                "tasks.max": "5",
+                "connector.class": "com.example.mongo",
+                "name": "source-connector"
+            }
+        }"#;
+
+        let a = serde_json::from_str(&a).unwrap();
+        let b = serde_json::from_str(&b).unwrap();
+
+        let response = tokio::task::spawn_blocking(move || {
+            client.create_connector(&a).unwrap();
+            client.create_connector(&b).unwrap();
+            client.list_connectors().unwrap()
+        })
+        .await
+        .unwrap();
+
+        assert_eq!(response.len(), 2);
     }
 }
