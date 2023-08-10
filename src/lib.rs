@@ -6,16 +6,60 @@ use ureq::Agent;
 
 use anyhow::{Context, Result};
 
-pub fn list_connectors(agent: &Agent, uri: &str) -> Result<Vec<ConnectorName>> {
-    let connectors = agent
-        .get(&format!("{}/connectors", &uri))
-        .set("Accept", "application/json")
-        .call()
-        .with_context(|| format!("Failed sending request to {}", &uri))?
-        .into_json::<Vec<ConnectorName>>()
-        .with_context(|| format!("Could not parse response returned from {}/connectors", &uri))?;
+pub struct Client {
+    pub config: Config,
+}
 
-    Ok(connectors)
+impl Client {
+    pub fn from_config(config: Config) -> Self {
+        Client { config }
+    }
+
+    pub fn list_connectors(&self) -> Result<Vec<ConnectorName>> {
+        let _endpoint = &format!("{}/connectors", self.config.connect_uri);
+        let connectors = self
+            .config
+            .http_agent
+            .get(_endpoint)
+            .set("Accept", "application/json")
+            .call()
+            .with_context(|| format!("Failed sending request to {}", &self.config.connect_uri))?
+            .into_json::<Vec<ConnectorName>>()
+            .with_context(|| {
+                format!(
+                    "Could not parse response returned from {}/connectors",
+                    &self.config.connect_uri
+                )
+            })?;
+
+        Ok(connectors)
+    }
+
+    pub fn create_connector(&self, c: CreateConnector) -> Result<Connector> {
+        let _endpoint = &format!("{}/connectors", self.config.connect_uri);
+        let returned_connector = self
+            .config
+            .http_agent
+            .post(_endpoint)
+            .send_json(c)
+            .with_context(|| format!("could not post connector"))?
+            .into_json::<Connector>()
+            .with_context(|| format!("could not parse response returned"))?;
+        Ok(returned_connector)
+    }
+}
+pub struct Config {
+    pub http_agent: Agent,
+    pub connect_uri: String,
+}
+
+impl Config {
+    pub fn from(agent: Agent, uri: String) -> Config {
+        Config {
+            http_agent: (agent),
+            connect_uri: (uri),
+        }
+    }
 }
 
 type ConnectorConfig = HashMap<String, String>;

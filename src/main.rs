@@ -5,7 +5,7 @@ use ureq::Agent;
 mod error;
 use anyhow::Result;
 
-use kofr::list_connectors;
+use kofr::{Client, Config};
 
 fn main() -> Result<()> {
     let uri = env::var("CONNECT_URI").expect("env var CONNECT_URI not found");
@@ -15,7 +15,12 @@ fn main() -> Result<()> {
         .timeout_write(Duration::from_secs(5))
         .build();
 
-    let connectors_vec = list_connectors(&agent, &uri)?;
+    let client = Client::from_config(Config {
+        http_agent: (agent),
+        connect_uri: (uri.to_owned()),
+    });
+
+    let connectors_vec = client.list_connectors()?;
 
     for c in &connectors_vec {
         dbg!(c);
