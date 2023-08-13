@@ -62,7 +62,7 @@ impl Config {
     }
 }
 
-type ConnectorConfig = HashMap<String, String>;
+pub type ConnectorConfig = HashMap<String, String>;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct ConnectorName(pub String);
@@ -114,6 +114,18 @@ impl From<&CreateConnector> for Connector {
             tasks: (tasks),
             connector_type: (c_type),
         }
+    }
+}
+
+// impl std::fmt::Display for ConnectorName {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         write!(f, "{}", self.0)
+//     }
+// }
+
+impl<T: Into<String>> From<T> for ConnectorName {
+    fn from(src: T) -> Self {
+        Self(src.into())
     }
 }
 
