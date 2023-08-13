@@ -6,6 +6,7 @@ use ureq::Agent;
 mod error;
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
+use clap_stdin::FileOrStdin;
 use kofr::{Client, Config, CreateConnector};
 
 fn main() -> Result<()> {
@@ -62,7 +63,7 @@ enum ConnectorCmd {
 #[derive(Args, Debug)]
 struct Create {
     #[arg(short = 'f', long = "file")]
-    config: PathBuf,
+    config: FileOrStdin,
 }
 
 impl List {
@@ -77,7 +78,9 @@ impl List {
 
 impl Create {
     fn run(self, connect_client: Client) -> Result<()> {
-        let create_connector = std::fs::read_to_string(self.config)?;
+        dbg!(&self.config);
+        // let create_connector = std::fs::read_to_string(self.config.to_string())?;
+        let create_connector = self.config;
         let create_connector: CreateConnector = serde_json::from_str(&create_connector)?;
         dbg!(&create_connector);
         dbg!(&create_connector.name.0);
