@@ -2,9 +2,9 @@ mod error;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use ureq::Agent;
+use ureq::{Agent, Error};
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 pub struct Client {
     pub config: Config,
@@ -37,15 +37,23 @@ impl Client {
 
     pub fn create_connector(&self, c: &CreateConnector) -> Result<Connector> {
         let _endpoint = &format!("{}connectors", self.config.connect_uri);
-        let returned_connector = self
+        match self
             .config
             .http_agent
             .post(_endpoint)
+            .set("Content-Type", "application/json")
             .send_json(c)
-            .with_context(|| format!("could not post connector"))?
-            .into_json::<Connector>()
-            .with_context(|| format!("could not parse response returned"))?;
-        Ok(returned_connector)
+        {
+            Ok(response) => response
+                .into_json::<Connector>()
+                .with_context(|| format!("could not parse response returned")),
+            Err(Error::Status(_, response)) => {
+                return Err(anyhow!(" {:?}", response.into_string()?));
+            }
+            Err(err) => return Err(anyhow!("{}", err)),
+        }
+
+        // Ok(returned_connector)
     }
 }
 pub struct Config {

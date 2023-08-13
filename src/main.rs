@@ -61,6 +61,7 @@ enum ConnectorCmd {
 
 #[derive(Args, Debug)]
 struct Create {
+    #[arg(short = 'f', long = "file")]
     config: PathBuf,
 }
 
