@@ -1,5 +1,3 @@
-mod error;
-
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use ureq::{Agent, Error};
@@ -59,15 +57,6 @@ impl Client {
 pub struct Config {
     pub http_agent: Agent,
     pub connect_uri: String,
-}
-
-impl Config {
-    pub fn from(agent: Agent, uri: String) -> Config {
-        Config {
-            http_agent: (agent),
-            connect_uri: (uri),
-        }
-    }
 }
 
 pub type ConnectorConfig = HashMap<String, String>;

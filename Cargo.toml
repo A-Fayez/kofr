@@ -9,10 +9,12 @@ edition = "2021"
 ureq = { version = "2.6.1", features = ["json"]}
 serde = { version = "1.0.180", features = ["derive"]}
 serde_json = "1.0.103"
+serde_yaml = "0.9.25"
 thiserror = "1.0.44"
 anyhow = "1.0.72"
 clap = { version = "4.3.21", features = ["derive"] }
 clap-stdin = "0.2.1"
+directories = "5.0.1"
 
 [dev-dependencies]
 kcmockserver = { git = "https://github.com/A-Fayez/kcmockserver.git" }

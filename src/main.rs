@@ -1,16 +1,18 @@
 use std::env;
-use std::path::PathBuf;
 use std::time::Duration;
 use ureq::Agent;
 
-mod error;
+mod config;
+mod connect;
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
-use kofr::{Client, Config, CreateConnector};
+use connect::{Client, Config, CreateConnector};
 
 fn main() -> Result<()> {
     let uri = env::var("CONNECT_URI").expect("env var CONNECT_URI not found");
+
+    let config_dir = config::ClusterConfig::from_file("/Users/fayez/.kofr/config")?;
 
     let agent: Agent = ureq::AgentBuilder::new()
         .timeout_read(Duration::from_secs(5))
@@ -25,37 +27,40 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::List(list) => list.run(client)?,
-        Commands::ConnectorCmd(connector_command) => match connector_command {
-            ConnectorCmd::Create(create) => create.run(client)?,
+        Action::List(list) => list.run(client)?,
+        Action::ConnectorAction(connector_command) => match connector_command {
+            ConnectorAction::Create(create) => create.run(client)?,
         },
     }
 
     Ok(())
 }
 
+/// Kafka Connect CLI for connect cluster management
 #[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+#[command(name = "git")]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Action,
 }
 
 #[derive(Subcommand, Debug)]
-enum Commands {
+enum Action {
     /// lists active connectors in current cluster
     #[clap(alias = "ls")]
     List(List),
     /// operate on connectors
     #[command(subcommand)]
     #[clap(name = "connector", alias = "cn")]
-    ConnectorCmd(ConnectorCmd),
+    ConnectorAction(ConnectorAction),
 }
 
 #[derive(Args, Debug)]
 struct List {}
 
 #[derive(Subcommand, Debug)]
-enum ConnectorCmd {
+enum ConnectorAction {
     /// creates a connector
     Create(Create),
 }
@@ -79,7 +84,6 @@ impl List {
 impl Create {
     fn run(self, connect_client: Client) -> Result<()> {
         dbg!(&self.config);
-        // let create_connector = std::fs::read_to_string(self.config.to_string())?;
         let create_connector = self.config;
         let create_connector: CreateConnector = serde_json::from_str(&create_connector)?;
         dbg!(&create_connector);
