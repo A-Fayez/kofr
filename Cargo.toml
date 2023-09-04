@@ -14,7 +14,7 @@ thiserror = "1.0.44"
 anyhow = "1.0.72"
 clap = { version = "4.3.21", features = ["derive"] }
 clap-stdin = "0.2.1"
-directories = "5.0.1"
+home = "0.5.5"
 
 [dev-dependencies]
 kcmockserver = { git = "https://github.com/A-Fayez/kcmockserver.git" }
