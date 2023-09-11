@@ -5,7 +5,7 @@ use ureq::Agent;
 
 mod config;
 mod connect;
-use anyhow::{Context, Result};
+use anyhow::{ensure, Context, Result};
 use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
 use connect::{Client, Config, CreateConnector};
@@ -13,9 +13,7 @@ use connect::{Client, Config, CreateConnector};
 fn main() -> Result<()> {
     let uri = env::var("CONNECT_URI").expect("env var CONNECT_URI not found");
 
-    let mut path = home_dir().context("could not get user's home dir")?;
-    path.push(".kofr/config");
-    let cluster_config = config::Config::from_file(path)?;
+    let mut cluster_config = config::Config::from_file()?;
 
     let agent: Agent = ureq::AgentBuilder::new()
         .timeout_read(Duration::from_secs(5))
@@ -35,7 +33,7 @@ fn main() -> Result<()> {
             ConnectorAction::Create(create) => create.run(client)?,
         },
         Action::ConfigAction(config_command) => match config_command {
-            ConfigAction::UseCluster(cluster) => cluster.run()?,
+            ConfigAction::UseCluster(cluster) => cluster.run(&mut cluster_config)?,
         },
     }
 
@@ -123,8 +121,20 @@ impl Create {
 
 // TODO:
 impl UseCluster {
-    fn run(self) -> Result<()> {
-        dbg!(self.cluster);
+    fn run(self, current_config: &mut config::Config) -> Result<()> {
+        let clusters: Vec<&String> = current_config.clusters.iter().map(|c| &c.name).collect();
+
+        ensure!(
+            clusters.contains(&&self.cluster),
+            format!("Cluster with name {} could not be found", &self.cluster)
+        );
+
+        current_config.current_cluster = Some(self.cluster);
+
+        let updated_config_yaml = serde_yaml::to_string(&current_config)?;
+        std::fs::write(&current_config.file_path, updated_config_yaml)?;
+
+        dbg!(clusters);
         Ok(())
     }
 }
