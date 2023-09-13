@@ -4,13 +4,13 @@ use ureq::{Agent, Error};
 
 use anyhow::{anyhow, Context, Result};
 
-pub struct Client {
-    pub config: Config,
+pub struct HTTPClient {
+    pub config: HTTPClientConfig,
 }
 
-impl Client {
-    pub fn from_config(config: Config) -> Self {
-        Client { config }
+impl HTTPClient {
+    pub fn from_config(config: HTTPClientConfig) -> Self {
+        Self { config }
     }
 
     pub fn list_connectors(&self) -> Result<Vec<ConnectorName>> {
@@ -54,7 +54,7 @@ impl Client {
         // Ok(returned_connector)
     }
 }
-pub struct Config {
+pub struct HTTPClientConfig {
     pub http_agent: Agent,
     pub connect_uri: String,
 }
@@ -114,12 +114,6 @@ impl From<&CreateConnector> for Connector {
     }
 }
 
-// impl std::fmt::Display for ConnectorName {
-//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//         write!(f, "{}", self.0)
-//     }
-// }
-
 impl<T: Into<String>> From<T> for ConnectorName {
     fn from(src: T) -> Self {
         Self(src.into())
@@ -140,7 +134,7 @@ mod tests {
             .timeout_write(Duration::from_secs(5))
             .build();
 
-        let client = Client::from_config(Config {
+        let client = HTTPClient::from_config(HTTPClientConfig {
             http_agent: (agent),
             connect_uri: (server.base_url().to_string()),
         });
@@ -159,7 +153,7 @@ mod tests {
             .timeout_write(Duration::from_secs(5))
             .build();
 
-        let client = Client::from_config(Config {
+        let client = HTTPClient::from_config(HTTPClientConfig {
             http_agent: (agent),
             connect_uri: (server.base_url().to_string()),
         });
@@ -193,7 +187,7 @@ mod tests {
             .timeout_write(Duration::from_secs(5))
             .build();
 
-        let client = Client::from_config(Config {
+        let client = HTTPClient::from_config(HTTPClientConfig {
             http_agent: (agent),
             connect_uri: (server.base_url().to_string()),
         });

@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -20,11 +20,17 @@ impl Config {
         path.push(".kofr/config");
 
         let config = std::fs::read_to_string(&path)?;
-        let mut deserialized_config: Config = serde_yaml::from_str(&config)?;
+        let mut deserialized_config: Self = serde_yaml::from_str(&config)?;
         deserialized_config.file_path = path;
 
         dbg!(&deserialized_config);
         Ok(deserialized_config)
+    }
+
+    // TODO:
+    // get a ClusterContext, implement http and trailing slash here, refactor ClusterContext's hosts to valid http Uri
+    pub fn current_context() -> Result<ClusterContext> {
+        unimplemented!()
     }
 }
 

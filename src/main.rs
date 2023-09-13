@@ -1,14 +1,13 @@
-use home::home_dir;
 use std::env;
 use std::time::Duration;
 use ureq::Agent;
 
 mod config;
 mod connect;
-use anyhow::{ensure, Context, Result};
+use anyhow::{ensure, Result};
 use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
-use connect::{Client, Config, CreateConnector};
+use connect::{CreateConnector, HTTPClient};
 
 fn main() -> Result<()> {
     let uri = env::var("CONNECT_URI").expect("env var CONNECT_URI not found");
@@ -20,7 +19,7 @@ fn main() -> Result<()> {
         .timeout_write(Duration::from_secs(5))
         .build();
 
-    let client = Client::from_config(Config {
+    let client = HTTPClient::from_config(connect::HTTPClientConfig {
         http_agent: (agent),
         connect_uri: (uri.to_owned()),
     });
@@ -92,7 +91,7 @@ struct Create {
 }
 
 impl List {
-    fn run(self, connect_client: Client) -> Result<()> {
+    fn run(self, connect_client: HTTPClient) -> Result<()> {
         let connectors = connect_client.list_connectors()?;
         for c in &connectors {
             println!("{}", c.0)
@@ -102,7 +101,7 @@ impl List {
 }
 
 impl Create {
-    fn run(self, connect_client: Client) -> Result<()> {
+    fn run(self, connect_client: HTTPClient) -> Result<()> {
         dbg!(&self.config);
         let create_connector = self.config;
         let create_connector: CreateConnector = serde_json::from_str(&create_connector)?;
@@ -119,7 +118,6 @@ impl Create {
     }
 }
 
-// TODO:
 impl UseCluster {
     fn run(self, current_config: &mut config::Config) -> Result<()> {
         let clusters: Vec<&String> = current_config.clusters.iter().map(|c| &c.name).collect();
