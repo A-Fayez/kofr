@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-
 use home::home_dir;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
