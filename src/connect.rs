@@ -14,7 +14,7 @@ impl HTTPClient {
     }
 
     pub fn list_connectors(&self) -> Result<Vec<ConnectorName>> {
-        let _endpoint = &format!("{}connectors", self.config.connect_uri);
+        let _endpoint = &format!("{}/connectors", self.config.connect_uri);
         let connectors = self
             .config
             .http_agent
@@ -34,7 +34,7 @@ impl HTTPClient {
     }
 
     pub fn create_connector(&self, c: &CreateConnector) -> Result<Connector> {
-        let _endpoint = &format!("{}connectors", self.config.connect_uri);
+        let _endpoint = &format!("{}/connectors", self.config.connect_uri);
         match self
             .config
             .http_agent

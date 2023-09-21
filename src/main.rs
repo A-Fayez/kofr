@@ -10,9 +10,8 @@ use clap_stdin::FileOrStdin;
 use connect::{CreateConnector, HTTPClient};
 
 fn main() -> Result<()> {
-    let uri = env::var("CONNECT_URI").expect("env var CONNECT_URI not found");
-
     let mut cluster_config = config::Config::from_file()?;
+    let uri = &cluster_config.current_context()?.hosts[0];
 
     let agent: Agent = ureq::AgentBuilder::new()
         .timeout_read(Duration::from_secs(5))
@@ -33,6 +32,7 @@ fn main() -> Result<()> {
         },
         Action::ConfigAction(config_command) => match config_command {
             ConfigAction::UseCluster(cluster) => cluster.run(&mut cluster_config)?,
+            ConfigAction::CurrentContext => unimplemented!(),
         },
     }
 
@@ -68,9 +68,11 @@ enum Action {
 struct List {}
 
 #[derive(Subcommand, Debug)]
-#[clap(name = "use-cluster")]
 enum ConfigAction {
+    #[clap(name = "use-cluster")]
     UseCluster(UseCluster),
+    #[clap(name = "current-context")]
+    CurrentContext,
 }
 
 #[derive(Args, Debug)]

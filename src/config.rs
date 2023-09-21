@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std:: path::PathBuf;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -29,8 +29,17 @@ impl Config {
 
     // TODO:
     // get a ClusterContext, implement http and trailing slash here, refactor ClusterContext's hosts to valid http Uri
-    pub fn current_context() -> Result<ClusterContext> {
-        unimplemented!()
+    pub fn current_context(&self) -> Result<&ClusterContext> {
+        let cluster_name = self.current_cluster.as_deref().ok_or(anyhow::anyhow!(
+            "No current context was set\n consider using command: kofr config use-cluster <CLUSTER>"
+        ))?;
+        self.clusters
+            .iter()
+            .find(|&c| c.name == cluster_name)
+            .ok_or(anyhow::anyhow!(format!(
+                "Cluster with name {} could not be found",
+                &cluster_name
+            )))
     }
 }
 
