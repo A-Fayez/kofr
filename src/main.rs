@@ -11,6 +11,7 @@ use connect::{CreateConnector, HTTPClient};
 
 fn main() -> Result<()> {
     let mut cluster_config = config::Config::from_file()?;
+    let current_context = cluster_config.current_context()?;
     let uri = &cluster_config.current_context()?.hosts[0];
 
     let agent: Agent = ureq::AgentBuilder::new()
@@ -32,7 +33,12 @@ fn main() -> Result<()> {
         },
         Action::ConfigAction(config_command) => match config_command {
             ConfigAction::UseCluster(cluster) => cluster.run(&mut cluster_config)?,
-            ConfigAction::CurrentContext => unimplemented!(),
+            ConfigAction::CurrentContext => println!("{}", current_context.name),
+            ConfigAction::GetClusters => {
+                for cluster in &cluster_config.clusters {
+                    println!("{}", cluster.name)
+                }
+            }
         },
     }
 
@@ -73,6 +79,8 @@ enum ConfigAction {
     UseCluster(UseCluster),
     #[clap(name = "current-context")]
     CurrentContext,
+    #[clap(name = "get-clusters")]
+    GetClusters,
 }
 
 #[derive(Args, Debug)]

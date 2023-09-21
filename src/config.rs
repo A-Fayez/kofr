@@ -1,4 +1,4 @@
-use std:: path::PathBuf;
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -37,7 +37,7 @@ impl Config {
             .iter()
             .find(|&c| c.name == cluster_name)
             .ok_or(anyhow::anyhow!(format!(
-                "Cluster with name {} could not be found",
+                "Cluster with name {} could not be found\nConsider setting one with command: kofr config use-cluster <CLUSTER>",
                 &cluster_name
             )))
     }
