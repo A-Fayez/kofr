@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use ureq::{Agent, Error};
 
+use serde::{Deserialize, Serialize};
+use ureq::{Agent, Error};
 use anyhow::{anyhow, Context, Result};
 
 pub struct HTTPClient {
