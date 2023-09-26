@@ -1,6 +1,7 @@
 use anyhow::{ensure, Result};
 use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
+use tabled::{settings::Style, Table};
 
 use crate::connect::{CreateConnector, HTTPClient};
 
@@ -61,10 +62,9 @@ pub struct Create {
 
 impl List {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        let connectors = connect_client.list_connectors()?;
-        for c in &connectors {
-            println!("{}", c.0)
-        }
+        let connectors = connect_client.list_connectors_status()?;
+        let connectors_table = Table::new(connectors).with(Style::blank()).to_string();
+        print!("{}\n", connectors_table);
         Ok(())
     }
 }
@@ -96,12 +96,11 @@ impl UseCluster {
             format!("Cluster with name {} could not be found", &self.cluster)
         );
 
-        current_config.current_cluster = Some(self.cluster);
+        current_config.current_cluster = Some(self.cluster.clone());
 
         let updated_config_yaml = serde_yaml::to_string(&current_config)?;
         std::fs::write(&current_config.file_path, updated_config_yaml)?;
-
-        dbg!(clusters);
+        print!("Switched to cluster \"{}\"\n", self.cluster);
         Ok(())
     }
 }

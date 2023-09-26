@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
 use home::home_dir;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Config {
@@ -22,7 +22,6 @@ impl Config {
         let mut deserialized_config: Self = serde_yaml::from_str(&config)?;
         deserialized_config.file_path = path;
 
-        dbg!(&deserialized_config);
         Ok(deserialized_config)
     }
 

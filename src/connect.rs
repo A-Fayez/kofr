@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::{collections::HashMap, str::FromStr};
 
 use anyhow::{anyhow, Context, Result};
@@ -60,43 +61,83 @@ impl HTTPClient {
         let connectors_status: serde_json::Map<String, serde_json::Value> = response;
 
         for entry in &connectors_status {
+            let status = entry.1.get("status").with_context(|| {
+                format!(
+                    "no field named status in response json struct: {}",
+                    &response_body
+                )
+            })?;
+            let tasks = status
+                .get("tasks")
+                .with_context(|| {
+                    format!(
+                        "no field named tasks in response json struct: {}",
+                        &response_body
+                    )
+                })?
+                .as_array()
+                .with_context(|| {
+                    format!(
+                        r#"expected array in "tasks" key, found something: {}"#,
+                        &response_body
+                    )
+                })?
+                .len();
+            let state = State::from_str(
+                status
+                    .get("connector")
+                    .with_context(|| {
+                        format!(
+                            r#"no field named "connector" in response json struct: {}"#,
+                            &response_body
+                        )
+                    })?
+                    .get("state")
+                    .with_context(|| {
+                        format!(
+                            r#"no field named "state" in response json struct: {}"#,
+                            &response_body
+                        )
+                    })?
+                    .as_str()
+                    .with_context(|| {
+                        format!(
+                            r#"expected string value of key "state" found something else: {}"#,
+                            &response_body
+                        )
+                    })?,
+            )?;
+            let worker_id = status
+                .get("connector")
+                .with_context(|| {
+                    format!(
+                        r#"no field named "connector" in response json struct: {}"#,
+                        &response_body
+                    )
+                })?
+                .get("worker_id")
+                .with_context(|| {
+                    format!(
+                        r#"no field named "worker_id" in response json struct: {}"#,
+                        &response_body
+                    )
+                })?
+                .as_str()
+                .with_context(|| {
+                    format!(
+                        r#"expected string value of key "worker_id" found something else: {}"#,
+                        &response_body
+                    )
+                })?;
+
             _vec.push(VerboseConnector {
                 name: ConnectorName(String::from(entry.0)),
-                tasks: entry
-                    .1
-                    .get("status")
-                    .unwrap()
-                    .get("tasks")
-                    .unwrap()
-                    .as_array()
-                    .unwrap()
-                    .len(),
-                state: State::from_str(
-                    entry
-                        .1
-                        .get("status")
-                        .unwrap()
-                        .get("connector")
-                        .unwrap()
-                        .get("state")
-                        .unwrap()
-                        .as_str()
-                        .unwrap(),
-                )
-                .unwrap(),
-                worker_id: entry
-                    .1
-                    .get("status")
-                    .unwrap()
-                    .get("connector")
-                    .unwrap()
-                    .get("worker_id")
-                    .unwrap()
-                    .as_str()
-                    .unwrap()
-                    .to_string(),
+                tasks,
+                state,
+                worker_id: worker_id.to_string(),
             })
         }
+
         Ok(_vec)
     }
 
@@ -166,11 +207,15 @@ pub enum ConnectorType {
     Source,
 }
 
-#[derive(Debug)]
+#[derive(tabled::Tabled, Debug)]
 pub struct VerboseConnector {
+    #[tabled(rename = "NAME")]
     pub name: ConnectorName,
-    pub tasks: usize,
+    #[tabled(rename = "STATE")]
     pub state: State,
+    #[tabled(rename = "TASKS")]
+    pub tasks: usize,
+    #[tabled(rename = "WORKER_ID")]
     pub worker_id: String,
 }
 
@@ -206,22 +251,35 @@ impl From<&CreateConnector> for Connector {
 }
 
 impl std::str::FromStr for State {
-    type Err = ();
+    type Err = anyhow::Error;
 
-    fn from_str(input: &str) -> Result<State, Self::Err> {
+    fn from_str(input: &str) -> anyhow::Result<State, Self::Err> {
         match input {
             "RUNNING" => Ok(State::Running),
             "PAUSED" => Ok(State::Paused),
             "UNASSIGNED" => Ok(State::Unassigned),
             "FAILED" => Ok(State::Failed),
-            _ => Err(()),
+            _ => Err(anyhow!(
+                "unimplemneted state, valid values are: RUNNING, PAUSED, UNASSIGNED and FAILED"
+            )),
         }
     }
 }
 
-impl<T: Into<String>> From<T> for ConnectorName {
-    fn from(src: T) -> Self {
-        Self(src.into())
+impl Display for ConnectorName {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Display for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Running => write!(f, "{}", "RUNNING"),
+            Self::Failed => write!(f, "{}", "FAILED"),
+            Self::Paused => write!(f, "{}", "PAUSED"),
+            Self::Unassigned => write!(f, "{}", "UNASSIGNED"),
+        }
     }
 }
 
