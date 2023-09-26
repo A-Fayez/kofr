@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
+use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use ureq::{Agent, Error};
-use anyhow::{anyhow, Context, Result};
 
 pub struct HTTPClient {
     pub config: HTTPClientConfig,
@@ -14,11 +14,13 @@ impl HTTPClient {
     }
 
     pub fn list_connectors(&self) -> Result<Vec<ConnectorName>> {
-        let _endpoint = &format!("{}/connectors", self.config.connect_uri);
+        let uri = &self.config.connect_uri;
+        let _endpoint = self.valid_uri(uri);
+
         let connectors = self
             .config
             .http_agent
-            .get(_endpoint)
+            .get(&_endpoint)
             .set("Accept", "application/json")
             .call()
             .with_context(|| format!("Failed sending request to {}", &self.config.connect_uri))?
@@ -33,12 +35,79 @@ impl HTTPClient {
         Ok(connectors)
     }
 
+    pub fn list_connectors_status(&self) -> Result<Vec<VerboseConnector>> {
+        let uri = &self.config.connect_uri;
+        let _endpoint = self.valid_uri(uri);
+
+        let response = self
+            .config
+            .http_agent
+            .get(&_endpoint)
+            .set("Accept", "application/json")
+            .query("expand", "status")
+            .call()
+            .with_context(|| format!("Failed sending request to {}", &_endpoint))?;
+
+        let response_body = response.into_string()?;
+
+        let mut _vec: Vec<VerboseConnector> = Vec::new();
+        if response_body == "[]" {
+            return Ok(_vec);
+        }
+
+        let response: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_str(&response_body)?;
+        let connectors_status: serde_json::Map<String, serde_json::Value> = response;
+
+        for entry in &connectors_status {
+            _vec.push(VerboseConnector {
+                name: ConnectorName(String::from(entry.0)),
+                tasks: entry
+                    .1
+                    .get("status")
+                    .unwrap()
+                    .get("tasks")
+                    .unwrap()
+                    .as_array()
+                    .unwrap()
+                    .len(),
+                state: State::from_str(
+                    entry
+                        .1
+                        .get("status")
+                        .unwrap()
+                        .get("connector")
+                        .unwrap()
+                        .get("state")
+                        .unwrap()
+                        .as_str()
+                        .unwrap(),
+                )
+                .unwrap(),
+                worker_id: entry
+                    .1
+                    .get("status")
+                    .unwrap()
+                    .get("connector")
+                    .unwrap()
+                    .get("worker_id")
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+            })
+        }
+        Ok(_vec)
+    }
+
     pub fn create_connector(&self, c: &CreateConnector) -> Result<Connector> {
-        let _endpoint = &format!("{}/connectors", self.config.connect_uri);
+        let uri = &self.config.connect_uri;
+        let _endpoint = self.valid_uri(uri);
+
         match self
             .config
             .http_agent
-            .post(_endpoint)
+            .post(&_endpoint)
             .set("Content-Type", "application/json")
             .send_json(c)
         {
@@ -50,8 +119,13 @@ impl HTTPClient {
             }
             Err(err) => return Err(anyhow!("{}", err)),
         }
+    }
 
-        // Ok(returned_connector)
+    fn valid_uri(&self, uri: &str) -> String {
+        if uri.ends_with("/") {
+            return format!("{}connectors", uri);
+        }
+        format!("{}/connectors", uri)
     }
 }
 pub struct HTTPClientConfig {
@@ -92,6 +166,23 @@ pub enum ConnectorType {
     Source,
 }
 
+#[derive(Debug)]
+pub struct VerboseConnector {
+    pub name: ConnectorName,
+    pub tasks: usize,
+    pub state: State,
+    pub worker_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum State {
+    Running,
+    Failed,
+    Unassigned,
+    Paused,
+}
+
 impl From<&CreateConnector> for Connector {
     fn from(connector: &CreateConnector) -> Self {
         let mut tasks = Vec::<Task>::new();
@@ -110,6 +201,20 @@ impl From<&CreateConnector> for Connector {
             config: (connector.config.clone()),
             tasks: (tasks),
             connector_type: (c_type),
+        }
+    }
+}
+
+impl std::str::FromStr for State {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<State, Self::Err> {
+        match input {
+            "RUNNING" => Ok(State::Running),
+            "PAUSED" => Ok(State::Paused),
+            "UNASSIGNED" => Ok(State::Unassigned),
+            "FAILED" => Ok(State::Failed),
+            _ => Err(()),
         }
     }
 }
@@ -223,5 +328,66 @@ mod tests {
         .unwrap();
 
         assert_eq!(response.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_listing_connector_status() {
+        let server = KcTestServer::new();
+        let agent: Agent = ureq::AgentBuilder::new()
+            .timeout_read(Duration::from_secs(5))
+            .timeout_write(Duration::from_secs(5))
+            .build();
+
+        let client = HTTPClient::from_config(HTTPClientConfig {
+            http_agent: (agent),
+            connect_uri: (server.base_url().to_string()),
+        });
+
+        let c = r#"
+        {
+            "name": "sink-connector",
+            "config": {
+                "tasks.max": "10",
+                "connector.class": "com.example.kafka",
+                "name": "sink-connector"
+            }
+        }"#;
+
+        let c: CreateConnector = serde_json::from_str(c).unwrap();
+        let connectors_vec = tokio::task::spawn_blocking(move || {
+            client.create_connector(&c).unwrap();
+            client.list_connectors_status().unwrap()
+        })
+        .await
+        .unwrap();
+
+        assert_eq!(
+            connectors_vec[0].name,
+            ConnectorName(String::from("sink-connector"))
+        );
+        assert_eq!(connectors_vec[0].tasks, 1);
+        assert_eq!(connectors_vec[0].state, State::Running);
+    }
+
+    #[tokio::test]
+    async fn test_listing_empty_connector_status() {
+        let server = KcTestServer::new();
+        let agent: Agent = ureq::AgentBuilder::new()
+            .timeout_read(Duration::from_secs(5))
+            .timeout_write(Duration::from_secs(5))
+            .build();
+
+        let client = HTTPClient::from_config(HTTPClientConfig {
+            http_agent: (agent),
+            connect_uri: (server.base_url().to_string()),
+        });
+
+        let connectors: Vec<VerboseConnector> =
+            tokio::task::spawn_blocking(move || client.list_connectors_status().unwrap())
+                .await
+                .unwrap();
+
+        dbg!(&connectors);
+        assert_eq!(connectors.len(), 0);
     }
 }
