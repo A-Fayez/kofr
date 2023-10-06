@@ -154,18 +154,16 @@ impl HTTPClient {
         {
             Ok(response) => response
                 .into_json::<Connector>()
-                .with_context(|| format!("could not parse response returned")),
-            Err(Error::Status(_, response)) => {
-                return Err(anyhow!(" {:?}", response.into_string()?));
-            }
-            Err(err) => return Err(anyhow!("{}", err)),
+                .context("could not parse response returned"),
+            Err(Error::Status(_, response)) => Err(anyhow!(" {:?}", response.into_string()?)),
+            Err(err) => Err(anyhow!("{}", err)),
         }
     }
 
     pub fn desribe_connector(&self, name: &str) -> Result<DescribeConnector> {
         let uri = &self.config.connect_uri;
-        let status_endpoint = format!("{}/{}/status", self.valid_uri(&uri), name);
-        let config_endpoint = format!("{}/{}/config", self.valid_uri(&uri), name);
+        let status_endpoint = format!("{}/{}/status", self.valid_uri(uri), name);
+        let config_endpoint = format!("{}/{}/config", self.valid_uri(uri), name);
 
         let connector_status: ConnectorStatus = match self
             .config
@@ -207,7 +205,7 @@ impl HTTPClient {
     }
 
     fn valid_uri(&self, uri: &str) -> String {
-        if uri.ends_with("/") {
+        if uri.ends_with('/') {
             return format!("{}connectors", uri);
         }
         format!("{}/connectors", uri)
@@ -355,10 +353,10 @@ impl Display for ConnectorName {
 impl Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::Running => write!(f, "{}", "RUNNING"),
-            Self::Failed => write!(f, "{}", "FAILED"),
-            Self::Paused => write!(f, "{}", "PAUSED"),
-            Self::Unassigned => write!(f, "{}", "UNASSIGNED"),
+            Self::Running => write!(f, "RUNNING"),
+            Self::Failed => write!(f, "FAILED"),
+            Self::Paused => write!(f, "PAUSED"),
+            Self::Unassigned => write!(f, "UNASSIGNED"),
         }
     }
 }

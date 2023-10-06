@@ -71,7 +71,7 @@ impl List {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
         let connectors = connect_client.list_connectors_status()?;
         let connectors_table = Table::new(connectors).with(Style::blank()).to_string();
-        println!("{}\n", connectors_table);
+        println!("{}", connectors_table);
         Ok(())
     }
 }
@@ -98,7 +98,7 @@ impl Describe {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
         let describe_connector: DescribeConnector = connect_client.desribe_connector(&self.name)?;
         let pretty_json = serde_json::to_string_pretty(&describe_connector)?;
-        print!("{pretty_json}\n");
+        println!("{pretty_json}");
         Ok(())
     }
 }
@@ -116,7 +116,7 @@ impl UseCluster {
 
         let updated_config_yaml = serde_yaml::to_string(&current_config)?;
         std::fs::write(&current_config.file_path, updated_config_yaml)?;
-        print!("Switched to cluster \"{}\"\n", self.cluster);
+        println!("Switched to cluster \"{}\"", self.cluster);
         Ok(())
     }
 }
