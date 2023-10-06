@@ -198,8 +198,11 @@ impl HTTPClient {
         };
 
         Ok(DescribeConnector {
-            status: connector_status,
+            name: ConnectorName(String::from(name)),
+            connector_type: connector_status.connector_type,
             config: connector_config,
+            state: connector_status.connector_state,
+            tasks: connector_status.tasks,
         })
     }
 
@@ -241,7 +244,7 @@ pub struct Task {
     pub id: usize,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TaskStatus {
     pub id: usize,
     pub state: State,
@@ -250,13 +253,13 @@ pub struct TaskStatus {
     pub trace: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ConnectorState {
     pub state: State,
     pub worker_id: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ConnectorStatus {
     pub name: ConnectorName,
     #[serde(rename = "connector")]
@@ -266,10 +269,15 @@ pub struct ConnectorStatus {
     pub connector_type: ConnectorType,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DescribeConnector {
-    pub status: ConnectorStatus,
+    pub name: ConnectorName,
     pub config: ConnectorConfig,
+    #[serde(rename = "connector")]
+    pub state: ConnectorState,
+    pub tasks: Vec<TaskStatus>,
+    #[serde(rename = "type")]
+    pub connector_type: ConnectorType,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -357,8 +365,6 @@ impl Display for State {
 
 #[cfg(test)]
 mod tests {
-    use crate::cli;
-
     use super::*;
     use kcmockserver::KcTestServer;
     use std::time::Duration;

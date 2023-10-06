@@ -3,7 +3,7 @@ use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
 use tabled::{settings::Style, Table};
 
-use crate::connect::{CreateConnector, HTTPClient};
+use crate::connect::{CreateConnector, DescribeConnector, HTTPClient};
 
 /// Kafka Connect CLI for connect cluster management
 #[derive(Parser, Debug)]
@@ -52,6 +52,8 @@ pub struct UseCluster {
 pub enum ConnectorAction {
     /// creates a connector
     Create(Create),
+    /// describes a connector's config and status
+    Describe(Describe),
 }
 
 #[derive(Args, Debug)]
@@ -60,11 +62,16 @@ pub struct Create {
     pub config: FileOrStdin,
 }
 
+#[derive(Args, Debug)]
+pub struct Describe {
+    pub name: String,
+}
+
 impl List {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
         let connectors = connect_client.list_connectors_status()?;
         let connectors_table = Table::new(connectors).with(Style::blank()).to_string();
-        print!("{}\n", connectors_table);
+        println!("{}\n", connectors_table);
         Ok(())
     }
 }
@@ -83,6 +90,15 @@ impl Create {
             &create_connector.name.0
         );
         println!("{}", response);
+        Ok(())
+    }
+}
+
+impl Describe {
+    pub fn run(self, connect_client: HTTPClient) -> Result<()> {
+        let describe_connector: DescribeConnector = connect_client.desribe_connector(&self.name)?;
+        let pretty_json = serde_json::to_string_pretty(&describe_connector)?;
+        print!("{pretty_json}\n");
         Ok(())
     }
 }

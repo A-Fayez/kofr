@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ureq = { version = "2.6.1", features = ["json"]}
-serde = { version = "1.0.180", features = ["derive"]}
+ureq = { version = "2.6.1", features = ["json"] }
+serde = { version = "1.0.180", features = ["derive"] }
 serde_json = "1.0.103"
 serde_yaml = "0.9.25"
 thiserror = "1.0.44"
@@ -15,8 +15,8 @@ anyhow = "1.0.72"
 clap = { version = "4.3.21", features = ["derive"] }
 clap-stdin = "0.2.1"
 home = "0.5.5"
-tabled = "0.14.0"
+tabled = "0.12"
 
 [dev-dependencies]
 kcmockserver = { git = "https://github.com/A-Fayez/kcmockserver.git" }
-tokio = { version ="1.29.1", features = ["full"] }
+tokio = { version = "1.29.1", features = ["full"] }
