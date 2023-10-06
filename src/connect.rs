@@ -162,6 +162,47 @@ impl HTTPClient {
         }
     }
 
+    pub fn desribe_connector(&self, name: &str) -> Result<DescribeConnector> {
+        let uri = &self.config.connect_uri;
+        let status_endpoint = format!("{}/{}/status", self.valid_uri(&uri), name);
+        let config_endpoint = format!("{}/{}/config", self.valid_uri(&uri), name);
+
+        let connector_status: ConnectorStatus = match self
+            .config
+            .http_agent
+            .get(&status_endpoint)
+            .set("Accept", "application/json")
+            .call()
+        {
+            Ok(response) => response.into_json()?,
+            Err(ureq::Error::Status(404, _)) => {
+                print!("endpoint: {}", &status_endpoint);
+                return Err(anyhow!("connector: {} was not found", name));
+            }
+            Err(err) => return Err(anyhow!("{}", err)),
+        };
+
+        let connector_config: ConnectorConfig = match self
+            .config
+            .http_agent
+            .get(&config_endpoint)
+            .set("Accept", "application/json")
+            .call()
+        {
+            Ok(response) => response.into_json()?,
+            Err(ureq::Error::Status(404, _)) => {
+                print!("{}", &config_endpoint);
+                return Err(anyhow!("connector: {} was not found", name));
+            }
+            Err(err) => return Err(anyhow!("{}", err)),
+        };
+
+        Ok(DescribeConnector {
+            status: connector_status,
+            config: connector_config,
+        })
+    }
+
     fn valid_uri(&self, uri: &str) -> String {
         if uri.ends_with("/") {
             return format!("{}connectors", uri);
@@ -198,6 +239,37 @@ pub struct Task {
     pub connector: ConnectorName,
     #[serde(rename = "task")]
     pub id: usize,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TaskStatus {
+    pub id: usize,
+    pub state: State,
+    pub worker_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectorState {
+    pub state: State,
+    pub worker_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectorStatus {
+    pub name: ConnectorName,
+    #[serde(rename = "connector")]
+    pub connector_state: ConnectorState,
+    pub tasks: Vec<TaskStatus>,
+    #[serde(rename = "type")]
+    pub connector_type: ConnectorType,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DescribeConnector {
+    pub status: ConnectorStatus,
+    pub config: ConnectorConfig,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -285,6 +357,8 @@ impl Display for State {
 
 #[cfg(test)]
 mod tests {
+    use crate::cli;
+
     use super::*;
     use kcmockserver::KcTestServer;
     use std::time::Duration;
