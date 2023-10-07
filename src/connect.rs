@@ -163,9 +163,8 @@ impl HTTPClient {
     pub fn desribe_connector(&self, name: &str) -> Result<DescribeConnector> {
         let uri = &self.config.connect_uri;
         let status_endpoint = format!("{}/{}/status", self.valid_uri(uri), name);
-        let config_endpoint = format!("{}/{}/config", self.valid_uri(uri), name);
 
-        let connector_status: ConnectorStatus = match self
+        let status: ConnectorStatus = match self
             .config
             .http_agent
             .get(&status_endpoint)
@@ -180,28 +179,71 @@ impl HTTPClient {
             Err(err) => return Err(anyhow!("{}", err)),
         };
 
-        let connector_config: ConnectorConfig = match self
+        let config: ConnectorConfig = self.get_connector_config(name)?;
+
+        Ok(DescribeConnector {
+            name: ConnectorName(String::from(name)),
+            connector_type: status.connector_type,
+            config: config,
+            state: status.connector_state,
+            tasks: status.tasks,
+        })
+    }
+
+    // updates a connector's config wrapping PUT request to /connectors/<name>/config
+    pub fn put_connector(self, name: &str, config: ConnectorConfig) -> Result<ConnectorConfig> {
+        let uri = &self.config.connect_uri;
+        let config_endpoint = format!("{}/{}/config", self.valid_uri(uri), name);
+        // TODO: better error handling and return real response from API in case of failure
+        match self
+            .config
+            .http_agent
+            .put(&config_endpoint)
+            .set("Accept", "application/json")
+            .set("Content-Type", "application/json")
+            .send_json(config)
+        {
+            Ok(response) => {
+                return response
+                    .into_json()
+                    .context("failed parsing respone from API")
+            }
+            Err(ureq::Error::Status(404, _)) => {
+                return Err(anyhow!("connector: {} was not found", name))
+            }
+            Err(ureq::Error::Status(_, response)) => {
+                let response = response
+                    .into_string()
+                    .context("resposne was larger than 10MBs")?;
+                return Err(anyhow!("{response}"));
+            }
+            Err(ureq::Error::Transport(transport)) => {
+                let message = transport.message().unwrap_or_default();
+                return Err(anyhow!("unexpected transport error:\n{message}"));
+            }
+        }
+    }
+
+    pub fn get_connector_config(&self, name: &str) -> Result<ConnectorConfig> {
+        let uri = &self.config.connect_uri;
+        let config_endpoint = format!("{}/{}/config", self.valid_uri(uri), name);
+        match self
             .config
             .http_agent
             .get(&config_endpoint)
             .set("Accept", "application/json")
             .call()
         {
-            Ok(response) => response.into_json()?,
+            Ok(response) => {
+                return response
+                    .into_json()
+                    .context("failed parsing connector config json")
+            }
             Err(ureq::Error::Status(404, _)) => {
-                print!("{}", &config_endpoint);
                 return Err(anyhow!("connector: {} was not found", name));
             }
             Err(err) => return Err(anyhow!("{}", err)),
-        };
-
-        Ok(DescribeConnector {
-            name: ConnectorName(String::from(name)),
-            connector_type: connector_status.connector_type,
-            config: connector_config,
-            state: connector_status.connector_state,
-            tasks: connector_status.tasks,
-        })
+        }
     }
 
     fn valid_uri(&self, uri: &str) -> String {
@@ -304,6 +346,7 @@ pub enum State {
     Failed,
     Unassigned,
     Paused,
+    Restarting,
 }
 
 impl From<&CreateConnector> for Connector {
@@ -337,6 +380,7 @@ impl std::str::FromStr for State {
             "PAUSED" => Ok(State::Paused),
             "UNASSIGNED" => Ok(State::Unassigned),
             "FAILED" => Ok(State::Failed),
+            "RESTARTING" => Ok(State::Restarting),
             _ => Err(anyhow!(
                 "unimplemneted state, valid values are: RUNNING, PAUSED, UNASSIGNED and FAILED"
             )),
@@ -357,6 +401,7 @@ impl Display for State {
             Self::Failed => write!(f, "FAILED"),
             Self::Paused => write!(f, "PAUSED"),
             Self::Unassigned => write!(f, "UNASSIGNED"),
+            Self::Restarting => write!(f, "RESTARTING"),
         }
     }
 }

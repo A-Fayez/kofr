@@ -1,9 +1,9 @@
-use anyhow::{ensure, Result};
+use anyhow::{ensure, Context, Result};
 use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
 use tabled::{settings::Style, Table};
 
-use crate::connect::{CreateConnector, DescribeConnector, HTTPClient};
+use crate::connect::{ConnectorConfig, CreateConnector, DescribeConnector, HTTPClient};
 
 /// Kafka Connect CLI for connect cluster management
 #[derive(Parser, Debug)]
@@ -54,6 +54,8 @@ pub enum ConnectorAction {
     Create(Create),
     /// describes a connector's config and status
     Describe(Describe),
+    ///  update the configuration for an existing connector.
+    Edit(Edit),
 }
 
 #[derive(Args, Debug)]
@@ -65,6 +67,11 @@ pub struct Create {
 #[derive(Args, Debug)]
 pub struct Describe {
     pub name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct Edit {
+    name: String,
 }
 
 impl List {
@@ -103,6 +110,26 @@ impl Describe {
     }
 }
 
+impl Edit {
+    pub fn run(self, connect_client: HTTPClient) -> Result<()> {
+        // use tempfile::NamedTempFile;
+
+        // let old_config: ConnectorConfig = connect_client.get_connector_config(&self.name)?;
+        // let config_data = serde_json::to_string(&old_config)?;
+        // let file = NamedTempFile::with_prefix(&self.name)?;
+        // let editor = Editor::new();
+        // std::fs::write(file.path(), config_data).context("failed writing data to tempfile")?;
+        // println!("contents of tempfile");
+        // dbg!(std::fs::read_to_string(file.path())?);
+        // let mut cmd = std::process::Command::new(editor.name);
+        // println!("printing edited configs");
+        // let output = cmd.output()?.stdout;
+        // dbg!(output);
+        // Ok(())
+        unimplemented!()
+    }
+}
+
 impl UseCluster {
     pub fn run(self, current_config: &mut crate::config::Config) -> Result<()> {
         let clusters: Vec<&String> = current_config.clusters.iter().map(|c| &c.name).collect();
@@ -118,5 +145,23 @@ impl UseCluster {
         std::fs::write(&current_config.file_path, updated_config_yaml)?;
         println!("Switched to cluster \"{}\"", self.cluster);
         Ok(())
+    }
+}
+
+struct Editor {
+    name: String,
+}
+
+impl Editor {
+    fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl Default for Editor {
+    fn default() -> Self {
+        Self {
+            name: std::env::var("EDITOR").unwrap_or(String::from("vi")),
+        }
     }
 }

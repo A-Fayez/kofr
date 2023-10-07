@@ -33,6 +33,7 @@ fn main() -> Result<()> {
         Action::ConnectorAction(connector_command) => match connector_command {
             ConnectorAction::Create(create) => create.run(client)?,
             ConnectorAction::Describe(describe) => describe.run(client)?,
+            ConnectorAction::Edit(edit) => edit.run(client)?,
         },
         Action::ConfigAction(config_command) => match config_command {
             ConfigAction::UseCluster(cluster) => cluster.run(&mut cluster_config)?,
