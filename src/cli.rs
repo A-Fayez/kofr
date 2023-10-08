@@ -112,21 +112,31 @@ impl Describe {
 
 impl Edit {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        // use tempfile::NamedTempFile;
+        let old_config_json: ConnectorConfig = connect_client.get_connector_config(&self.name)?;
+        let old_config = serde_json::to_string_pretty(&old_config_json)?;
+        let file = tempfile::Builder::new()
+            .prefix(&format!("{}-edit-", &self.name))
+            .suffix(".json")
+            .tempfile()
+            .context("could not create tempfile for editing")?;
 
-        // let old_config: ConnectorConfig = connect_client.get_connector_config(&self.name)?;
-        // let config_data = serde_json::to_string(&old_config)?;
-        // let file = NamedTempFile::with_prefix(&self.name)?;
-        // let editor = Editor::new();
-        // std::fs::write(file.path(), config_data).context("failed writing data to tempfile")?;
-        // println!("contents of tempfile");
-        // dbg!(std::fs::read_to_string(file.path())?);
-        // let mut cmd = std::process::Command::new(editor.name);
-        // println!("printing edited configs");
-        // let output = cmd.output()?.stdout;
-        // dbg!(output);
-        // Ok(())
-        unimplemented!()
+        let editor = Editor::new();
+        std::fs::write(file.path(), &old_config).context("failed writing data to tempfile")?;
+        std::process::Command::new(&editor.name)
+            .arg(file.path())
+            .spawn()
+            .with_context(|| format!("unable to launch the editor: {}", editor.name))?
+            .wait()?;
+
+        let new_config = std::fs::read_to_string(file.path())?;
+        let new_config_json: ConnectorConfig = serde_json::from_str(&new_config)?;
+        if old_config_json == new_config_json {
+            println!("Edit cancelled, no changes were made");
+            return Ok(());
+        }
+        connect_client.put_connector(&self.name, new_config_json)?;
+        println!("connector: {} edited.", &self.name);
+        Ok(())
     }
 }
 

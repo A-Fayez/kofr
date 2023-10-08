@@ -161,24 +161,7 @@ impl HTTPClient {
     }
 
     pub fn desribe_connector(&self, name: &str) -> Result<DescribeConnector> {
-        let uri = &self.config.connect_uri;
-        let status_endpoint = format!("{}/{}/status", self.valid_uri(uri), name);
-
-        let status: ConnectorStatus = match self
-            .config
-            .http_agent
-            .get(&status_endpoint)
-            .set("Accept", "application/json")
-            .call()
-        {
-            Ok(response) => response.into_json()?,
-            Err(ureq::Error::Status(404, _)) => {
-                print!("endpoint: {}", &status_endpoint);
-                return Err(anyhow!("connector: {} was not found", name));
-            }
-            Err(err) => return Err(anyhow!("{}", err)),
-        };
-
+        let status: ConnectorStatus = self.get_connector_status(name)?;
         let config: ConnectorConfig = self.get_connector_config(name)?;
 
         Ok(DescribeConnector {
@@ -194,7 +177,6 @@ impl HTTPClient {
     pub fn put_connector(self, name: &str, config: ConnectorConfig) -> Result<ConnectorConfig> {
         let uri = &self.config.connect_uri;
         let config_endpoint = format!("{}/{}/config", self.valid_uri(uri), name);
-        // TODO: better error handling and return real response from API in case of failure
         match self
             .config
             .http_agent
@@ -203,14 +185,10 @@ impl HTTPClient {
             .set("Content-Type", "application/json")
             .send_json(config)
         {
-            Ok(response) => {
-                return response
-                    .into_json()
-                    .context("failed parsing respone from API")
-            }
-            Err(ureq::Error::Status(404, _)) => {
-                return Err(anyhow!("connector: {} was not found", name))
-            }
+            Ok(response) => response
+                .into_json()
+                .context("failed parsing respone from API"),
+            Err(ureq::Error::Status(404, _)) => Err(anyhow!("connector: {} was not found", name)),
             Err(ureq::Error::Status(_, response)) => {
                 let response = response
                     .into_string()
@@ -234,15 +212,30 @@ impl HTTPClient {
             .set("Accept", "application/json")
             .call()
         {
-            Ok(response) => {
-                return response
-                    .into_json()
-                    .context("failed parsing connector config json")
-            }
-            Err(ureq::Error::Status(404, _)) => {
-                return Err(anyhow!("connector: {} was not found", name));
-            }
-            Err(err) => return Err(anyhow!("{}", err)),
+            Ok(response) => response
+                .into_json()
+                .context("failed parsing connector config's json"),
+
+            Err(ureq::Error::Status(404, _)) => Err(anyhow!("connector: {} was not found", name)),
+            Err(err) => Err(anyhow!("{}", err)),
+        }
+    }
+
+    pub fn get_connector_status(&self, name: &str) -> Result<ConnectorStatus> {
+        let uri = &self.config.connect_uri;
+        let status_endpoint = format!("{}/{}/status", self.valid_uri(uri), name);
+        match self
+            .config
+            .http_agent
+            .get(&status_endpoint)
+            .set("Accept", "application/json")
+            .call()
+        {
+            Ok(response) => response
+                .into_json()
+                .context("failed parsing connector status's json"),
+            Err(ureq::Error::Status(404, _)) => Err(anyhow!("connector: {} was not found", name)),
+            Err(err) => Err(anyhow!("{}", err)),
         }
     }
 
@@ -382,7 +375,7 @@ impl std::str::FromStr for State {
             "FAILED" => Ok(State::Failed),
             "RESTARTING" => Ok(State::Restarting),
             _ => Err(anyhow!(
-                "unimplemneted state, valid values are: RUNNING, PAUSED, UNASSIGNED and FAILED"
+                "unimplemneted state, valid values are: RUNNING, PAUSED, UNASSIGNED, RESTARTING and FAILED"
             )),
         }
     }
