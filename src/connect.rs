@@ -239,6 +239,56 @@ impl HTTPClient {
         }
     }
 
+    pub fn restart_connector(
+        self,
+        name: &str,
+        include_tasks: bool,
+        only_failed: bool,
+    ) -> Result<()> {
+        let uri = &self.config.connect_uri;
+        let restart_endpoint = format!("{}/{}/restart", self.valid_uri(uri), name);
+        match self
+            .config
+            .http_agent
+            .post(&restart_endpoint)
+            .set("Accept", "application/json")
+            .query("includeTasks", &include_tasks.to_string())
+            .query("onlyFailed", &only_failed.to_string())
+            .call()
+        {
+            Ok(response) =>  match response.status() {
+                200 | 204 => {
+                    let response = response
+                        .into_string()
+                        .context("response was larger that 10MBs")?;
+                    println!("connector: {} restart sucessfully", name);
+                    println!("{response}");
+                    return Ok(());
+                }
+                202 => {
+                    let response: ConnectorStatus = response.into_json()?;
+                    let response = serde_json::to_string_pretty(&response)?;
+                    println!("{}", response);
+                    return Ok(());
+                }
+                _ => {
+                    let response = response
+                        .into_string()
+                        .expect("response was larger than 10MBs");
+                    println!("{response}");
+                    return Ok(());
+                }
+            },
+            Err(ureq::Error::Status(_, response)) => {
+                let response = response
+                    .into_string()
+                    .context("response was larger than 10MBs")?;
+                return Err(anyhow!("{response}"));
+            }
+            Err(err) => return Err(anyhow!("{err}")),
+        }
+    }
+
     pub fn pause_connector(self, name: &str) -> Result<()> {
         let uri = &self.config.connect_uri;
         let pause_endpoint = format!("{}/{}/pause", self.valid_uri(uri), name);

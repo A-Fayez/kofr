@@ -1,4 +1,4 @@
-use anyhow::{ensure, Context, Result};
+use anyhow::{ensure, Context, Ok, Result};
 use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
 use tabled::{settings::Style, Table};
@@ -64,6 +64,8 @@ pub enum ConnectorAction {
     Pause(Pause),
     /// resume a paused connector or do nothing of the connector is not paused
     Resume(Resume),
+    /// restar the connector, you may use --include-tasks and/or --only-failed to restart any combination of the Connector and/or Task instances for the connector.
+    Restart(Restart),
 }
 
 #[derive(Args, Debug)]
@@ -100,6 +102,15 @@ pub struct Pause {
 #[derive(Args, Debug)]
 pub struct Resume {
     pub name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct Restart {
+    pub name: String,
+    #[arg(long = "include-tasks")]
+    pub include_tasks: bool,
+    #[arg(long = "only-failed")]
+    pub only_failed: bool,
 }
 
 impl List {
@@ -192,6 +203,12 @@ impl Pause {
 impl Resume {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
         connect_client.resume_connector(&self.name)
+    }
+}
+
+impl Restart {
+    pub fn run(self, connect_client: HTTPClient) -> Result<()> {
+        connect_client.restart_connector(&self.name, self.include_tasks, self.only_failed)
     }
 }
 
