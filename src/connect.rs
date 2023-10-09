@@ -239,6 +239,32 @@ impl HTTPClient {
         }
     }
 
+    pub fn pause_connector(self, name: &str) -> Result<()> {
+        let uri = &self.config.connect_uri;
+        let pause_endpoint = format!("{}/{}/pause", self.valid_uri(uri), name);
+        match self.config.http_agent.put(&pause_endpoint).call() {
+            Ok(_) => {
+                println!("connector: {} paused successfully", name);
+                return Ok(());
+            }
+            Err(ureq::Error::Status(_, r)) => return Err(anyhow!("{}", r.into_string()?)),
+            Err(err) => Err(anyhow!("{}", err)),
+        }
+    }
+
+    pub fn resume_connector(self, name: &str) -> Result<()> {
+        let uri = &self.config.connect_uri;
+        let resume_endpoint = format!("{}/{}/resume", self.valid_uri(uri), name);
+        match self.config.http_agent.put(&resume_endpoint).call() {
+            Ok(_) => {
+                println!("connector: {} resumed successfully", name);
+                return Ok(());
+            }
+            Err(ureq::Error::Status(_, r)) => return Err(anyhow!("{}", r.into_string()?)),
+            Err(err) => Err(anyhow!("{}", err)),
+        }
+    }
+
     fn valid_uri(&self, uri: &str) -> String {
         if uri.ends_with('/') {
             return format!("{}connectors", uri);

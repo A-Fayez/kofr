@@ -60,6 +60,10 @@ pub enum ConnectorAction {
     Status(Status),
     /// get connector's configuration
     Config(Config),
+    /// pause the connector and its tasks
+    Pause(Pause),
+    /// resume a paused connector or do nothing of the connector is not paused
+    Resume(Resume),
 }
 
 #[derive(Args, Debug)]
@@ -85,6 +89,16 @@ pub struct Status {
 
 #[derive(Args, Debug)]
 pub struct Config {
+    pub name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct Pause {
+    pub name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct Resume {
     pub name: String,
 }
 
@@ -166,6 +180,18 @@ impl Config {
         let config = serde_json::to_string_pretty(&config)?;
         println!("{config}");
         Ok(())
+    }
+}
+
+impl Pause {
+    pub fn run(self, connect_client: HTTPClient) -> Result<()> {
+        connect_client.pause_connector(&self.name)
+    }
+}
+
+impl Resume {
+    pub fn run(self, connect_client: HTTPClient) -> Result<()> {
+        connect_client.resume_connector(&self.name)
     }
 }
 

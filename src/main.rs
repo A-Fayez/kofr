@@ -35,6 +35,8 @@ fn main() -> Result<()> {
             ConnectorAction::Edit(edit) => edit.run(client)?,
             ConnectorAction::Status(status) => status.run(client)?,
             ConnectorAction::Config(config) => config.run(client)?,
+            ConnectorAction::Pause(pause) => pause.run(client)?,
+            ConnectorAction::Resume(resume) => resume.run(client)?,
         },
         Action::ConfigAction(config_command) => match config_command {
             ConfigAction::UseCluster(cluster) => cluster.run(&mut cluster_config)?,
