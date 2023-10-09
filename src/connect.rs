@@ -193,11 +193,11 @@ impl HTTPClient {
                 let response = response
                     .into_string()
                     .context("resposne was larger than 10MBs")?;
-                return Err(anyhow!("{response}"));
+                Err(anyhow!("{response}"))
             }
             Err(ureq::Error::Transport(transport)) => {
                 let message = transport.message().unwrap_or_default();
-                return Err(anyhow!("unexpected transport error:\n{message}"));
+                Err(anyhow!("unexpected transport error:\n{message}"))
             }
         }
     }
@@ -256,36 +256,32 @@ impl HTTPClient {
             .query("onlyFailed", &only_failed.to_string())
             .call()
         {
-            Ok(response) =>  match response.status() {
+            Ok(response) => match response.status() {
                 200 | 204 => {
-                    let response = response
-                        .into_string()
-                        .context("response was larger that 10MBs")?;
                     println!("connector: {} restart sucessfully", name);
-                    println!("{response}");
-                    return Ok(());
+                    Ok(())
                 }
                 202 => {
                     let response: ConnectorStatus = response.into_json()?;
                     let response = serde_json::to_string_pretty(&response)?;
                     println!("{}", response);
-                    return Ok(());
+                    Ok(())
                 }
                 _ => {
                     let response = response
                         .into_string()
                         .expect("response was larger than 10MBs");
                     println!("{response}");
-                    return Ok(());
+                    Ok(())
                 }
             },
             Err(ureq::Error::Status(_, response)) => {
                 let response = response
                     .into_string()
                     .context("response was larger than 10MBs")?;
-                return Err(anyhow!("{response}"));
+                Err(anyhow!("{response}"))
             }
-            Err(err) => return Err(anyhow!("{err}")),
+            Err(err) => Err(anyhow!("{err}")),
         }
     }
 
@@ -295,9 +291,9 @@ impl HTTPClient {
         match self.config.http_agent.put(&pause_endpoint).call() {
             Ok(_) => {
                 println!("connector: {} paused successfully", name);
-                return Ok(());
+                Ok(())
             }
-            Err(ureq::Error::Status(_, r)) => return Err(anyhow!("{}", r.into_string()?)),
+            Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
             Err(err) => Err(anyhow!("{}", err)),
         }
     }
@@ -308,10 +304,23 @@ impl HTTPClient {
         match self.config.http_agent.put(&resume_endpoint).call() {
             Ok(_) => {
                 println!("connector: {} resumed successfully", name);
-                return Ok(());
+                Ok(())
             }
-            Err(ureq::Error::Status(_, r)) => return Err(anyhow!("{}", r.into_string()?)),
+            Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
             Err(err) => Err(anyhow!("{}", err)),
+        }
+    }
+
+    pub fn delete_connector(self, name: &str) -> Result<()> {
+        let uri = &self.config.connect_uri;
+        let delete_endpoint = format!("{}/{}/", self.valid_uri(uri), name);
+        match self.config.http_agent.delete(&delete_endpoint).call() {
+            Ok(_) => {
+                println!("connector: {} deleted", name);
+                Ok(())
+            }
+            Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
+            Err(err) => Err(anyhow!("{err}")),
         }
     }
 

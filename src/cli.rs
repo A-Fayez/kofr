@@ -66,6 +66,8 @@ pub enum ConnectorAction {
     Resume(Resume),
     /// restar the connector, you may use --include-tasks and/or --only-failed to restart any combination of the Connector and/or Task instances for the connector.
     Restart(Restart),
+    /// delete a connector, halting all tasks and deleting its configuration.
+    Delete(Delete),
 }
 
 #[derive(Args, Debug)]
@@ -101,6 +103,11 @@ pub struct Pause {
 
 #[derive(Args, Debug)]
 pub struct Resume {
+    pub name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct Delete {
     pub name: String,
 }
 
@@ -209,6 +216,12 @@ impl Resume {
 impl Restart {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
         connect_client.restart_connector(&self.name, self.include_tasks, self.only_failed)
+    }
+}
+
+impl Delete {
+    pub fn run(self, connect_client: HTTPClient) -> Result<()> {
+        connect_client.delete_connector(&self.name)
     }
 }
 
