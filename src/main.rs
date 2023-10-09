@@ -30,17 +30,18 @@ fn main() -> Result<()> {
     match cli.command {
         Action::List(list) => list.run(client)?,
         Action::ConnectorAction(connector_command) => match connector_command {
-
             ConnectorAction::Create(create) => create.run(client)?,
             ConnectorAction::Describe(describe) => describe.run(client)?,
             ConnectorAction::Edit(edit) => edit.run(client)?,
+            ConnectorAction::Status(status) => status.run(client)?,
+            ConnectorAction::Config(config) => config.run(client)?,
         },
         Action::ConfigAction(config_command) => match config_command {
             ConfigAction::UseCluster(cluster) => cluster.run(&mut cluster_config)?,
             ConfigAction::CurrentContext => {
                 let current_context = cluster_config.current_context()?;
                 println!("{}", current_context.name)
-        },
+            }
             ConfigAction::GetClusters => {
                 for cluster in &cluster_config.clusters {
                     println!("{}", cluster.name)

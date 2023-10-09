@@ -56,6 +56,10 @@ pub enum ConnectorAction {
     Describe(Describe),
     ///  update the configuration for an existing connector.
     Edit(Edit),
+    /// get connector's status
+    Status(Status),
+    /// get connector's configuration
+    Config(Config),
 }
 
 #[derive(Args, Debug)]
@@ -74,6 +78,16 @@ pub struct Edit {
     name: String,
 }
 
+#[derive(Args, Debug)]
+pub struct Status {
+    pub name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct Config {
+    pub name: String,
+}
+
 impl List {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
         let connectors = connect_client.list_connectors_status()?;
@@ -85,11 +99,8 @@ impl List {
 
 impl Create {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        dbg!(&self.config);
         let create_connector = self.config;
         let create_connector: CreateConnector = serde_json::from_str(&create_connector)?;
-        dbg!(&create_connector);
-        dbg!(&create_connector.name.0);
         let response = connect_client.create_connector(&create_connector)?;
         let response = serde_json::to_string_pretty(&response)?;
         println!(
@@ -136,6 +147,24 @@ impl Edit {
         }
         connect_client.put_connector(&self.name, new_config_json)?;
         println!("connector: {} edited.", &self.name);
+        Ok(())
+    }
+}
+
+impl Status {
+    pub fn run(self, connect_client: HTTPClient) -> Result<()> {
+        let status = connect_client.get_connector_status(&self.name)?;
+        let status = serde_json::to_string_pretty(&status)?;
+        println!("{status}");
+        Ok(())
+    }
+}
+
+impl Config {
+    pub fn run(self, connect_client: HTTPClient) -> Result<()> {
+        let config = connect_client.get_connector_config(&self.name)?;
+        let config = serde_json::to_string_pretty(&config)?;
+        println!("{config}");
         Ok(())
     }
 }
