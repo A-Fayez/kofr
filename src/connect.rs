@@ -174,7 +174,7 @@ impl HTTPClient {
     }
 
     // updates a connector's config wrapping PUT request to /connectors/<name>/config
-    pub fn put_connector(self, name: &str, config: ConnectorConfig) -> Result<ConnectorConfig> {
+    pub fn put_connector(self, name: &str, config: ConnectorConfig) -> Result<Connector> {
         let uri = &self.config.connect_uri;
         let config_endpoint = format!("{}/{}/config", self.valid_uri(uri), name);
         match self
@@ -185,9 +185,10 @@ impl HTTPClient {
             .set("Content-Type", "application/json")
             .send_json(config)
         {
-            Ok(response) => response
-                .into_json()
-                .context("failed parsing respone from API"),
+            Ok(response) => match response.into_json::<Connector>() {
+                Ok(response) => Ok(response),
+                Err(e) => Err(anyhow!("{e}")),
+            },
             Err(ureq::Error::Status(404, _)) => Err(anyhow!("connector: {} was not found", name)),
             Err(ureq::Error::Status(_, response)) => {
                 let response = response
