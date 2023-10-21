@@ -19,5 +19,5 @@ tabled = "0.12"
 tempfile = "3.8.0"
 
 [dev-dependencies]
-kcmockserver = { git = "https://github.com/A-Fayez/kcmockserver.git" }
+kcmockserver = { git = "https://github.com/A-Fayez/kcmockserver.git", branch = "background-thread" }
 tokio = { version = "1.29.1", features = ["full"] }

@@ -491,8 +491,8 @@ mod tests {
     use kcmockserver::KcTestServer;
     use std::time::Duration;
 
-    #[tokio::test]
-    async fn test_listing_connectors_should_return_empty_vec() {
+    #[test]
+    fn test_listing_connectors_should_return_empty_vec() {
         let server = KcTestServer::new();
         let agent: Agent = ureq::AgentBuilder::new()
             .timeout_read(Duration::from_secs(5))
@@ -504,14 +504,12 @@ mod tests {
             connect_uri: (server.base_url().to_string()),
         });
 
-        let connectors_vec = tokio::task::spawn_blocking(move || client.list_connectors().unwrap())
-            .await
-            .unwrap();
+        let connectors_vec = client.list_connectors().unwrap();
         assert_eq!(connectors_vec, Vec::new());
     }
 
-    #[tokio::test]
-    async fn test_creating_a_connector_should_return_the_right_connector() {
+    #[test]
+    fn test_creating_a_connector_should_return_the_right_connector() {
         let server = KcTestServer::new();
         let agent: Agent = ureq::AgentBuilder::new()
             .timeout_read(Duration::from_secs(5))
@@ -536,16 +534,12 @@ mod tests {
         let c = serde_json::from_str(c).unwrap();
         let expected_connector = Connector::from(&c);
 
-        let returned_connector =
-            tokio::task::spawn_blocking(move || client.create_connector(&c).unwrap())
-                .await
-                .unwrap();
-
+        let returned_connector = client.create_connector(&c).unwrap();
         assert_eq!(returned_connector, expected_connector);
     }
 
-    #[tokio::test]
-    async fn test_listing_mutliple_connectors() {
+    #[test]
+    fn test_listing_mutliple_connectors() {
         let server = KcTestServer::new();
         let agent: Agent = ureq::AgentBuilder::new()
             .timeout_read(Duration::from_secs(5))
@@ -579,19 +573,15 @@ mod tests {
         let a = serde_json::from_str(&a).unwrap();
         let b = serde_json::from_str(&b).unwrap();
 
-        let response = tokio::task::spawn_blocking(move || {
-            client.create_connector(&a).unwrap();
-            client.create_connector(&b).unwrap();
-            client.list_connectors().unwrap()
-        })
-        .await
-        .unwrap();
+        client.create_connector(&a).unwrap();
+        client.create_connector(&b).unwrap();
+        let response = client.list_connectors().unwrap();
 
         assert_eq!(response.len(), 2);
     }
 
-    #[tokio::test]
-    async fn test_listing_connector_status() {
+    #[test]
+    fn test_listing_connector_status() {
         let server = KcTestServer::new();
         let agent: Agent = ureq::AgentBuilder::new()
             .timeout_read(Duration::from_secs(5))
@@ -614,12 +604,9 @@ mod tests {
         }"#;
 
         let c: CreateConnector = serde_json::from_str(c).unwrap();
-        let connectors_vec = tokio::task::spawn_blocking(move || {
-            client.create_connector(&c).unwrap();
-            client.list_connectors_status().unwrap()
-        })
-        .await
-        .unwrap();
+
+        client.create_connector(&c).unwrap();
+        let connectors_vec = client.list_connectors_status().unwrap();
 
         assert_eq!(
             connectors_vec[0].name,
@@ -629,8 +616,8 @@ mod tests {
         assert_eq!(connectors_vec[0].state, State::Running);
     }
 
-    #[tokio::test]
-    async fn test_listing_empty_connector_status() {
+    #[test]
+    fn test_listing_empty_connector_status() {
         let server = KcTestServer::new();
         let agent: Agent = ureq::AgentBuilder::new()
             .timeout_read(Duration::from_secs(5))
@@ -642,10 +629,7 @@ mod tests {
             connect_uri: (server.base_url().to_string()),
         });
 
-        let connectors: Vec<VerboseConnector> =
-            tokio::task::spawn_blocking(move || client.list_connectors_status().unwrap())
-                .await
-                .unwrap();
+        let connectors: Vec<VerboseConnector> = client.list_connectors_status().unwrap();
 
         dbg!(&connectors);
         assert_eq!(connectors.len(), 0);
