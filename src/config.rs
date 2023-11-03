@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Ok, Result};
 use home::home_dir;
 use serde::{Deserialize, Serialize};
 
@@ -71,4 +71,18 @@ impl Config {
 pub struct ClusterContext {
     pub name: String,
     pub hosts: Vec<String>,
+}
+
+impl ClusterContext {
+    pub fn available_host(&self) -> Result<String> {
+        for host in &self.hosts {
+            if ureq::get(&host).call().is_ok() {
+                return Ok(host.to_string());
+            }
+        }
+        Err(anyhow!(
+            "client has run out of available hosts to talk to for cluster \"{}\"",
+            self.name
+        ))
+    }
 }

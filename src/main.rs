@@ -23,11 +23,13 @@ fn main() -> Result<()> {
                 std::process::exit(exitcode::OK);
             }
             ConfigAction::CurrentContext => {
+                cluster_config = cluster_config.with_file(".kofr/config")?;
                 let current_context = cluster_config.current_context()?;
                 println!("{}", current_context.name);
                 std::process::exit(exitcode::OK);
             }
             ConfigAction::GetClusters => {
+                cluster_config = cluster_config.with_file(".kofr/config")?;
                 for cluster in &cluster_config.clusters {
                     println!("{}", cluster.name);
                     std::process::exit(exitcode::OK);
@@ -38,8 +40,7 @@ fn main() -> Result<()> {
     }
 
     cluster_config = cluster_config.with_file(".kofr/config")?;
-    // TODO: implement retry logic
-    let uri = &cluster_config.current_context()?.hosts[0];
+    let uri = &cluster_config.current_context()?.available_host()?;
 
     let agent: Agent = ureq::AgentBuilder::new()
         .timeout_read(Duration::from_secs(5))
