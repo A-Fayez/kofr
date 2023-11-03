@@ -130,10 +130,23 @@ impl HTTPClient {
                     )
                 })?;
 
+            let connector_type = status
+                .get("type")
+                .with_context(|| {
+                    format!(
+                        r#"no field named "type" in response json struct: {}"#,
+                        &response_body
+                    )
+                })?
+                .as_str()
+                .unwrap();
+            let connector_type = ConnectorType::from_str(connector_type)?;
+
             _vec.push(VerboseConnector {
                 name: ConnectorName(String::from(entry.0)),
                 tasks,
                 state,
+                connector_type,
                 worker_id: worker_id.to_string(),
             })
         }
@@ -414,6 +427,8 @@ pub struct VerboseConnector {
     pub state: State,
     #[tabled(rename = "TASKS")]
     pub tasks: usize,
+    #[tabled(rename = "TYPE")]
+    pub connector_type: ConnectorType,
     #[tabled(rename = "WORKER_ID")]
     pub worker_id: String,
 }
@@ -481,6 +496,29 @@ impl Display for State {
             Self::Paused => write!(f, "PAUSED"),
             Self::Unassigned => write!(f, "UNASSIGNED"),
             Self::Restarting => write!(f, "RESTARTING"),
+        }
+    }
+}
+
+impl Display for ConnectorType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Sink => write!(f, "SINK"),
+            Self::Source => write!(f, "SOURCE"),
+        }
+    }
+}
+
+impl std::str::FromStr for ConnectorType {
+    type Err = anyhow::Error;
+
+    fn from_str(input: &str) -> anyhow::Result<Self, Self::Err> {
+        match input {
+            "sink" => Ok(Self::Sink),
+            "source" => Ok(Self::Source),
+            _ => Err(anyhow!(
+                "unimplemneted type, valid values are: sink, source"
+            )),
         }
     }
 }
