@@ -17,6 +17,7 @@ clap-stdin = "0.2.1"
 home = "0.5.5"
 tabled = "0.12"
 tempfile = "3.8.0"
+exitcode = "1.1.2"
 
 [dev-dependencies]
 kcmockserver = { git = "https://github.com/A-Fayez/kcmockserver.git", branch = "background-thread" }

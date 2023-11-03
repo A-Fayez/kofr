@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use home::home_dir;
@@ -14,6 +14,14 @@ pub struct Config {
 }
 
 impl Config {
+    pub fn new() -> Self {
+        Self {
+            current_cluster: None,
+            clusters: Vec::new(),
+            file_path: PathBuf::new(),
+        }
+    }
+
     pub fn from_file() -> Result<Self> {
         let mut path = home_dir().context("could not get user's home dir")?;
         path.push(".kofr/config");
@@ -23,6 +31,24 @@ impl Config {
         deserialized_config.file_path = path;
 
         Ok(deserialized_config)
+    }
+
+    pub fn with_file<P>(mut self, path: P) -> Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let mut config_path = home_dir().context("could not get user's home dir")?;
+        config_path.push(&path);
+
+        dbg!(&config_path);
+        let config = std::fs::read_to_string(&config_path)?;
+        let deserialized_config: Self = serde_yaml::from_str(&config)?;
+
+        self.current_cluster = deserialized_config.current_cluster;
+        self.clusters = deserialized_config.clusters;
+        self.file_path = config_path;
+
+        Ok(self)
     }
 
     // TODO:

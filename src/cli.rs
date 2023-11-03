@@ -226,7 +226,7 @@ impl Delete {
 }
 
 impl UseCluster {
-    pub fn run(self, current_config: &mut crate::config::Config) -> Result<()> {
+    pub fn run(&self, current_config: &mut crate::config::Config) -> Result<()> {
         let clusters: Vec<&String> = current_config.clusters.iter().map(|c| &c.name).collect();
 
         ensure!(
