@@ -40,7 +40,6 @@ impl Config {
         let mut config_path = home_dir().context("could not get user's home dir")?;
         config_path.push(&path);
 
-        dbg!(&config_path);
         let config = std::fs::read_to_string(&config_path)?;
         let deserialized_config: Self = serde_yaml::from_str(&config)?;
 

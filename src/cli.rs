@@ -3,7 +3,10 @@ use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
 use tabled::{settings::Style, Table};
 
-use crate::connect::{ConnectorConfig, CreateConnector, DescribeConnector, HTTPClient};
+use crate::{
+    cluster,
+    connect::{ConnectorConfig, CreateConnector, DescribeConnector, HTTPClient},
+};
 
 /// Kafka Connect CLI for connect cluster management
 #[derive(Parser, Debug)]
@@ -28,6 +31,10 @@ pub enum Action {
     #[command(subcommand)]
     #[clap(name = "config")]
     ConfigAction(ConfigAction),
+
+    // check cluster status
+    #[command(subcommand)]
+    Cluster(Cluster),
 }
 
 #[derive(Args, Debug)]
@@ -118,6 +125,11 @@ pub struct Restart {
     pub include_tasks: bool,
     #[arg(long = "only-failed")]
     pub only_failed: bool,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Cluster {
+    Status,
 }
 
 impl List {
@@ -239,6 +251,35 @@ impl UseCluster {
         let updated_config_yaml = serde_yaml::to_string(&current_config)?;
         std::fs::write(&current_config.file_path, updated_config_yaml)?;
         println!("Switched to cluster \"{}\"", self.cluster);
+        Ok(())
+    }
+}
+
+impl Cluster {
+    pub fn run(&self, current_config: &crate::config::Config) -> Result<()> {
+        use crate::cluster::*;
+
+        let mut hosts_status = Vec::<UriStatus>::new();
+        if let Cluster::Status = self {
+            for host in &current_config.current_context()?.hosts {
+                hosts_status.push(get_uri_status(host));
+            }
+        }
+
+        let mut _id = "";
+        let cluster_id = hosts_status.iter().find(|&h| !h.id.is_empty());
+        if let Some(cluster_id) = cluster_id {
+            _id = &cluster_id.id;
+        }
+        println!(
+            r#" Current Cluster: {}
+ id : {}
+ ..........................................."#,
+            current_config.current_cluster.as_ref().unwrap(),
+            _id
+        );
+        let status_table = Table::new(hosts_status).with(Style::blank()).to_string();
+        println!("{}", status_table);
         Ok(())
     }
 }

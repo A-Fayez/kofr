@@ -1,4 +1,5 @@
 mod cli;
+mod cluster;
 mod config;
 mod connect;
 
@@ -36,6 +37,11 @@ fn main() -> Result<()> {
                 }
             }
         },
+        Action::Cluster(status) => {
+            cluster_config = cluster_config.with_file(".kofr/config")?;
+            status.run(&cluster_config)?;
+            std::process::exit(exitcode::OK);
+        }
         _ => (),
     }
 
