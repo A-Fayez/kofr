@@ -245,7 +245,7 @@ impl UseCluster {
 
         ensure!(
             clusters.contains(&&self.cluster),
-            format!("Cluster with name {} could not be found", &self.cluster)
+            format!("Cluster with name \"{}\" could not be found", &self.cluster)
         );
 
         current_config.current_cluster = Some(self.cluster.clone());
