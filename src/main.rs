@@ -24,7 +24,6 @@ fn main() -> Result<()> {
 
     let user_config_file = shellexpand::tilde(&user_config_file);
 
-    dbg!(&user_config_file);
     cluster_config = cluster_config.with_file(PathBuf::from(user_config_file.into_owned()))?;
     match &cli.command {
         Action::ConfigAction(config_command) => match &config_command {

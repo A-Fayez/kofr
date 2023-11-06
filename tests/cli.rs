@@ -56,3 +56,83 @@ fn test_kofr_use_cluster_failure() {
         "Error: Cluster with name \"dummy\" could not be found",
     ));
 }
+
+#[test]
+fn test_kofr_config_current_context_failure() {
+    let server = KcTestServer::new();
+    let config_file =
+        common::config_with_one_cluster_and_no_context("test", &server.base_url().to_string());
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("current-context")
+    .assert()
+    .failure()
+    .stderr(predicate::str::contains(
+        "Error: No current context was set",
+    ));
+}
+
+#[test]
+fn test_kofr_config_current_context_success() {
+    let server = KcTestServer::new();
+    let config_file = common::config_with_one_cluster("test", &server.base_url().to_string());
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("current-context")
+    .assert()
+    .success()
+    .stdout(predicate::str::contains("test"));
+}
+
+#[test]
+fn test_kofr_config_get_clusters() {
+    let test_server = KcTestServer::new();
+    let dev_server = KcTestServer::new();
+    let test_server = test_server.base_url().to_string();
+    let dev_server = dev_server.base_url().to_string();
+    let clusters = vec![
+        ("test".to_string(), test_server),
+        ("dev".to_string(), dev_server),
+    ];
+
+    let config_file = common::config_file_with_multiple_clusters(clusters);
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("get-clusters")
+    .assert()
+    .success()
+    .stdout(predicate::str::contains(
+        r#"test
+dev"#,
+    ));
+}
+
+#[test]
+fn test_kofr_config_get_clusters_are_empty() {
+    let config_file = tempfile::Builder::new().tempfile().unwrap();
+    std::fs::write(config_file.path(), r#"
+    clusters:
+    "#).unwrap();
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("get-clusters")
+    .assert()
+    .success()
+    .stdout(predicate::str::contains(""));
+}
