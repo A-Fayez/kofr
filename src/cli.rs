@@ -178,7 +178,7 @@ impl Edit {
             .context("could not create tempfile for editing")?;
 
         let editor = Editor::new();
-        std::fs::write(file.path(), &old_config).context("failed writing data to tempfile")?;
+        std::fs::write(file.path(), old_config).context("failed writing data to tempfile")?;
         std::process::Command::new(&editor.name)
             .arg(file.path())
             .spawn()
@@ -262,12 +262,9 @@ impl Cluster {
         use crate::cluster::*;
 
         let mut hosts_status = Vec::<UriStatus>::new();
-        if let Cluster::Status = self {
-            for host in &current_config.current_context()?.hosts {
-                hosts_status.push(get_uri_status(host));
-            }
+        for host in &current_config.current_context()?.hosts {
+            hosts_status.push(get_uri_status(host));
         }
-
         let mut _id = "";
         let cluster_id = hosts_status.iter().find(|&h| !h.id.is_empty());
         if let Some(cluster_id) = cluster_id {

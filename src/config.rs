@@ -56,7 +56,7 @@ pub struct ClusterContext {
 impl ClusterContext {
     pub fn available_host(&self) -> Result<String> {
         for host in &self.hosts {
-            if ureq::get(&host).call().is_ok() {
+            if ureq::get(host).call().is_ok() {
                 return Ok(host.to_string());
             }
         }

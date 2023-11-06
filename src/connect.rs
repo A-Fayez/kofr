@@ -14,28 +14,6 @@ impl HTTPClient {
         Self { config }
     }
 
-    pub fn list_connectors(&self) -> Result<Vec<ConnectorName>> {
-        let uri = &self.config.connect_uri;
-        let _endpoint = self.valid_uri(uri);
-
-        let connectors = self
-            .config
-            .http_agent
-            .get(&_endpoint)
-            .set("Accept", "application/json")
-            .call()
-            .with_context(|| format!("Failed sending request to {}", &self.config.connect_uri))?
-            .into_json::<Vec<ConnectorName>>()
-            .with_context(|| {
-                format!(
-                    "Could not parse response returned from {}/connectors",
-                    &self.config.connect_uri
-                )
-            })?;
-
-        Ok(connectors)
-    }
-
     pub fn list_connectors_status(&self) -> Result<Vec<VerboseConnector>> {
         let uri = &self.config.connect_uri;
         let _endpoint = self.valid_uri(uri);
@@ -180,7 +158,7 @@ impl HTTPClient {
         Ok(DescribeConnector {
             name: ConnectorName(String::from(name)),
             connector_type: status.connector_type,
-            config: config,
+            config,
             state: status.connector_state,
             tasks: status.tasks,
         })
@@ -542,8 +520,8 @@ mod tests {
             connect_uri: (server.base_url().to_string()),
         });
 
-        let connectors_vec = client.list_connectors().unwrap();
-        assert_eq!(connectors_vec, Vec::new());
+        let connectors_vec = client.list_connectors_status().unwrap();
+        assert!(connectors_vec.is_empty());
     }
 
     #[test]
@@ -613,7 +591,7 @@ mod tests {
 
         client.create_connector(&a).unwrap();
         client.create_connector(&b).unwrap();
-        let response = client.list_connectors().unwrap();
+        let response = client.list_connectors_status().unwrap();
 
         assert_eq!(response.len(), 2);
     }

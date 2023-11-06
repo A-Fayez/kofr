@@ -513,7 +513,7 @@ dependencies = [
 [[package]]
 name = "kcmockserver"
 version = "0.1.0"
-source = "git+https://github.com/A-Fayez/kcmockserver.git?branch=background-thread#6cc464b415a4234c40e9d725fdcdb4cce2981995"
+source = "git+https://github.com/A-Fayez/kcmockserver.git#571e851aee89cfe5f6ee627b076d41039de88526"
 dependencies = [
  "axum",
  "http",

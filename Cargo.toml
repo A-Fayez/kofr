@@ -21,5 +21,5 @@ exitcode = "1.1.2"
 shellexpand = "3.1.0"
 
 [dev-dependencies]
-kcmockserver = { git = "https://github.com/A-Fayez/kcmockserver.git", branch = "background-thread" }
+kcmockserver = { git = "https://github.com/A-Fayez/kcmockserver.git" }
 tokio = { version = "1.29.1", features = ["full"] }
