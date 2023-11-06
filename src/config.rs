@@ -1,7 +1,6 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Ok, Result};
-use home::home_dir;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -22,36 +21,18 @@ impl Config {
         }
     }
 
-    pub fn from_file() -> Result<Self> {
-        let mut path = home_dir().context("could not get user's home dir")?;
-        path.push(".kofr/config");
-
+    pub fn with_file(mut self, path: PathBuf) -> Result<Self> {
         let config = std::fs::read_to_string(&path)?;
-        let mut deserialized_config: Self = serde_yaml::from_str(&config)?;
-        deserialized_config.file_path = path;
-
-        Ok(deserialized_config)
-    }
-
-    pub fn with_file<P>(mut self, path: P) -> Result<Self>
-    where
-        P: AsRef<Path>,
-    {
-        let mut config_path = home_dir().context("could not get user's home dir")?;
-        config_path.push(&path);
-
-        let config = std::fs::read_to_string(&config_path)?;
-        let deserialized_config: Self = serde_yaml::from_str(&config).context("invalid config file format")?;
+        let deserialized_config: Self =
+            serde_yaml::from_str(&config).context("invalid config file format")?;
 
         self.current_cluster = deserialized_config.current_cluster;
         self.clusters = deserialized_config.clusters;
-        self.file_path = config_path;
+        self.file_path = path;
 
         Ok(self)
     }
 
-    // TODO:
-    // get a ClusterContext, implement http and trailing slash here, refactor ClusterContext's hosts to valid http Uri
     pub fn current_context(&self) -> Result<&ClusterContext> {
         let cluster_name = self.current_cluster.as_deref().ok_or(anyhow::anyhow!(
             "No current context was set\n consider using command: kofr config use-cluster <CLUSTER>"

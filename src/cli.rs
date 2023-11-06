@@ -1,12 +1,11 @@
+use std::path::PathBuf;
+
 use anyhow::{ensure, Context, Ok, Result};
 use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
 use tabled::{settings::Style, Table};
 
-use crate::{
-    cluster,
-    connect::{ConnectorConfig, CreateConnector, DescribeConnector, HTTPClient},
-};
+use crate::connect::{ConnectorConfig, CreateConnector, DescribeConnector, HTTPClient};
 
 /// Kafka Connect CLI for connect cluster management
 #[derive(Parser, Debug)]
@@ -14,6 +13,9 @@ use crate::{
 pub struct Cli {
     #[command(subcommand)]
     pub command: Action,
+    /// config file (default is $HOME/.kofr/config)
+    #[arg(long = "config-file")]
+    pub config_file: Option<PathBuf>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -32,7 +34,7 @@ pub enum Action {
     #[clap(name = "config")]
     ConfigAction(ConfigAction),
 
-    // check cluster status
+    /// check cluster status
     #[command(subcommand)]
     Cluster(Cluster),
 }

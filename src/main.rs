@@ -3,10 +3,11 @@ mod cluster;
 mod config;
 mod connect;
 
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
+use home::home_dir;
 use ureq::Agent;
 
 use cli::*;
@@ -15,22 +16,28 @@ use connect::HTTPClient;
 fn main() -> Result<()> {
     let mut cluster_config = config::Config::new();
     let cli = Cli::parse();
+    let mut default_config_path = home_dir().context("could not get user's home dir")?;
+    default_config_path.push(".kofr/config");
 
+    let binding = cli.config_file.unwrap_or(default_config_path);
+    let user_config_file = binding.to_string_lossy();
+
+    let user_config_file = shellexpand::tilde(&user_config_file);
+
+    dbg!(&user_config_file);
+    cluster_config = cluster_config.with_file(PathBuf::from(user_config_file.into_owned()))?;
     match &cli.command {
         Action::ConfigAction(config_command) => match &config_command {
             ConfigAction::UseCluster(use_cluster) => {
-                cluster_config = cluster_config.with_file(".kofr/config")?;
                 use_cluster.run(&mut cluster_config)?;
                 std::process::exit(exitcode::OK);
             }
             ConfigAction::CurrentContext => {
-                cluster_config = cluster_config.with_file(".kofr/config")?;
                 let current_context = cluster_config.current_context()?;
                 println!("{}", current_context.name);
                 std::process::exit(exitcode::OK);
             }
             ConfigAction::GetClusters => {
-                cluster_config = cluster_config.with_file(".kofr/config")?;
                 for cluster in &cluster_config.clusters {
                     println!("{}", cluster.name);
                     std::process::exit(exitcode::OK);
@@ -38,14 +45,12 @@ fn main() -> Result<()> {
             }
         },
         Action::Cluster(status) => {
-            cluster_config = cluster_config.with_file(".kofr/config")?;
             status.run(&cluster_config)?;
             std::process::exit(exitcode::OK);
         }
         _ => (),
     }
 
-    cluster_config = cluster_config.with_file(".kofr/config")?;
     let uri = &cluster_config.current_context()?.available_host()?;
 
     let agent: Agent = ureq::AgentBuilder::new()
