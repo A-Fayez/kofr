@@ -40,8 +40,8 @@ fn main() -> Result<()> {
             ConfigAction::GetClusters => {
                 for cluster in &cluster_config.clusters {
                     println!("{}", cluster.name);
-                    std::process::exit(exitcode::OK);
                 }
+                std::process::exit(exitcode::OK);
             }
         },
         Action::Cluster(status) => {
