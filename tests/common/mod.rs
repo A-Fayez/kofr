@@ -50,8 +50,11 @@ clusters:
 pub fn config_file_with_multiple_clusters(clusters: Vec<(String, String)>) -> NamedTempFile {
     let config_file = tempfile::Builder::new().tempfile().unwrap();
     let mut config = format!(
-        r#"clusters:
+        r#"
+current-cluster: {}
+clusters:
 "#,
+        clusters[0].0
     );
 
     for cluster in &clusters {
@@ -62,6 +65,32 @@ pub fn config_file_with_multiple_clusters(clusters: Vec<(String, String)>) -> Na
   - {}
         "#,
             cluster.0, cluster.1
+        ));
+    }
+    std::fs::write(config_file.path(), config).unwrap();
+    config_file
+}
+
+pub fn config_file_with_one_cluster_multiple_hosts(
+    cluster: &str,
+    hosts: Vec<String>,
+) -> NamedTempFile {
+    let config_file = tempfile::Builder::new().tempfile().unwrap();
+    let mut config = format!(
+        r#"
+current-cluster: {}
+clusters:
+- name: {}
+  hosts:
+"#,
+        cluster, cluster,
+    );
+
+    for host in &hosts {
+        config.push_str(&format!(
+            r#"
+  - {}
+        "#, host
         ));
     }
     std::fs::write(config_file.path(), config).unwrap();

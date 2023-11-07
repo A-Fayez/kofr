@@ -150,3 +150,50 @@ fn test_kofr_config_get_clusters_are_empty() {
     .success()
     .stdout(predicate::str::contains(""));
 }
+
+#[test]
+fn test_kofr_cluster_status() {
+    let test_server = KcTestServer::new();
+    let dev_server = KcTestServer::new();
+    let test_server_uri = test_server.base_url().to_string();
+    let dev_server_uri = dev_server.base_url().to_string();
+    let hosts = vec![test_server_uri, dev_server_uri];
+
+    let config_file = common::config_file_with_one_cluster_multiple_hosts("test", hosts);
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("cluster")
+    .arg("status")
+    .assert()
+    .success()
+    .stdout(predicate::str::contains("Online").count(2));
+
+    drop(dev_server);
+
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("cluster")
+    .arg("status")
+    .assert()
+    .success()
+    .stdout(predicate::str::contains("Online").count(1))
+    .stdout(predicates::str::contains("Offline").count(1));
+
+    drop(test_server);
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("cluster")
+    .arg("status")
+    .assert()
+    .success()
+    .stdout(predicate::str::contains("Offline").count(2));
+}
