@@ -647,7 +647,6 @@ mod tests {
 
         let connectors: Vec<VerboseConnector> = client.list_connectors_status().unwrap();
 
-        dbg!(&connectors);
         assert_eq!(connectors.len(), 0);
     }
 }
