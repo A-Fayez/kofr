@@ -25,7 +25,7 @@ impl HTTPClient {
             .set("Accept", "application/json")
             .query("expand", "status")
             .call()
-            .with_context(|| format!("Failed sending request to {}", &_endpoint))?;
+            .with_context(|| format!("Failed sending request to \"{}\"", &_endpoint))?;
 
         let response_body = response.into_string()?;
 
@@ -180,7 +180,9 @@ impl HTTPClient {
                 Ok(response) => Ok(response),
                 Err(e) => Err(anyhow!("{e}")),
             },
-            Err(ureq::Error::Status(404, _)) => Err(anyhow!("connector: {} was not found", name)),
+            Err(ureq::Error::Status(404, _)) => {
+                Err(anyhow!("connector: \"{}\" was not found", name))
+            }
             Err(ureq::Error::Status(_, response)) => {
                 let response = response
                     .into_string()
@@ -208,7 +210,9 @@ impl HTTPClient {
                 .into_json()
                 .context("failed parsing connector config's json"),
 
-            Err(ureq::Error::Status(404, _)) => Err(anyhow!("connector: {} was not found", name)),
+            Err(ureq::Error::Status(404, _)) => {
+                Err(anyhow!("connector: \"{}\" was not found", name))
+            }
             Err(err) => Err(anyhow!("{}", err)),
         }
     }
@@ -226,7 +230,9 @@ impl HTTPClient {
             Ok(response) => response
                 .into_json()
                 .context("failed parsing connector status's json"),
-            Err(ureq::Error::Status(404, _)) => Err(anyhow!("connector: {} was not found", name)),
+            Err(ureq::Error::Status(404, _)) => {
+                Err(anyhow!("connector: \"{}\" was not found", name))
+            }
             Err(err) => Err(anyhow!("{}", err)),
         }
     }
@@ -250,7 +256,7 @@ impl HTTPClient {
         {
             Ok(response) => match response.status() {
                 200 | 204 => {
-                    println!("connector: {} restart sucessfully", name);
+                    println!("connector: \"{}\" restarted sucessfully", name);
                     Ok(())
                 }
                 202 => {
@@ -282,7 +288,7 @@ impl HTTPClient {
         let pause_endpoint = format!("{}/{}/pause", self.valid_uri(uri), name);
         match self.config.http_agent.put(&pause_endpoint).call() {
             Ok(_) => {
-                println!("connector: {} paused successfully", name);
+                println!("connector: \"{}\" paused successfully", name);
                 Ok(())
             }
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
@@ -295,7 +301,7 @@ impl HTTPClient {
         let resume_endpoint = format!("{}/{}/resume", self.valid_uri(uri), name);
         match self.config.http_agent.put(&resume_endpoint).call() {
             Ok(_) => {
-                println!("connector: {} resumed successfully", name);
+                println!("connector: \"{}\" resumed successfully", name);
                 Ok(())
             }
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
@@ -308,7 +314,7 @@ impl HTTPClient {
         let delete_endpoint = format!("{}/{}/", self.valid_uri(uri), name);
         match self.config.http_agent.delete(&delete_endpoint).call() {
             Ok(_) => {
-                println!("connector: {} deleted", name);
+                println!("connector: \"{}\" deleted", name);
                 Ok(())
             }
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),

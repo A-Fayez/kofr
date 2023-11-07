@@ -43,7 +43,7 @@ impl Config {
             .iter()
             .find(|&c| c.name == cluster_name)
             .ok_or(anyhow::anyhow!(format!(
-                "Cluster with name {} could not be found\nConsider setting one with command: kofr config use-cluster <CLUSTER>",
+                "Cluster with name: \"{}\" could not be found\nConsider setting one with command: kofr config use-cluster <CLUSTER>",
                 &cluster_name
             )))
     }
@@ -63,7 +63,7 @@ impl ClusterContext {
             }
         }
         Err(anyhow!(
-            "client has run out of available hosts to talk to for cluster \"{}\"",
+            "client has run out of available hosts to talk to for cluster: \"{}\"",
             self.name
         ))
     }
