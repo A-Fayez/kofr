@@ -20,6 +20,16 @@ fn test_invalid_config_file_format() {
 }
 
 #[test]
+fn test_config_file_not_found() {
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!("--config-file=does-not-exist"))
+        .arg("ls")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Error: error reading config file"));
+}
+
+#[test]
 fn test_kofr_use_cluster_success() {
     let server = KcTestServer::new();
     let config_file = common::config_with_one_cluster("test", &server.base_url().to_string());
@@ -122,9 +132,13 @@ dev"#,
 #[test]
 fn test_kofr_config_get_clusters_are_empty() {
     let config_file = tempfile::Builder::new().tempfile().unwrap();
-    std::fs::write(config_file.path(), r#"
+    std::fs::write(
+        config_file.path(),
+        r#"
     clusters:
-    "#).unwrap();
+    "#,
+    )
+    .unwrap();
     let mut cmd = Command::cargo_bin("kofr").unwrap();
     cmd.arg(format!(
         "--config-file={}",
