@@ -22,7 +22,9 @@ impl Config {
     }
 
     pub fn with_file(mut self, path: PathBuf) -> Result<Self> {
-        let config = std::fs::read_to_string(&path)?;
+        let config = std::fs::read_to_string(&path).with_context(|| {
+            format!("error reading config file \"{}\"", &path.to_string_lossy())
+        })?;
         let deserialized_config: Self =
             serde_yaml::from_str(&config).context("invalid config file format")?;
 
