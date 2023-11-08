@@ -1,6 +1,6 @@
 use std::{ops::Deref, path::PathBuf};
 
-use anyhow::{ensure, Context, Ok, Result};
+use anyhow::{anyhow, ensure, Context, Ok, Result};
 use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
 use tabled::{settings::Style, Table};
@@ -62,6 +62,10 @@ pub enum ConfigAction {
     /// Add a new cluster
     #[clap(name = "add-cluster")]
     AddCluster(AddCluster),
+
+    /// Remove cluster
+    #[clap(name = "remove-cluster")]
+    RemoveCluster(RemoveCluster),
 }
 
 #[derive(Args, Debug)]
@@ -72,12 +76,16 @@ pub struct UseCluster {
 #[derive(Args, Debug)]
 pub struct AddCluster {
     /// cluster name
-    #[arg(short = 'n', long = "name")]
     pub name: String,
 
     /// Comma seperated list of valid http kafka connect hosts
     #[arg(long = "hosts")]
     pub hosts: String,
+}
+
+#[derive(Args, Debug)]
+pub struct RemoveCluster {
+    pub name: String,
 }
 
 #[derive(Subcommand, Debug)]
@@ -293,6 +301,14 @@ impl AddCluster {
             .map(|&s| s.to_string())
             .collect();
 
+        if current_config
+            .clusters
+            .iter()
+            .any(|c| c.name == cluster_name.to_string())
+        {
+            return Err(anyhow!("Cluster \"{}\" already exists.", cluster_name));
+        }
+
         current_config.clusters.push(ClusterContext {
             name: cluster_name.to_string(),
             hosts,
@@ -304,6 +320,28 @@ impl AddCluster {
         std::fs::write(&current_config.file_path, updated_config_yaml)
             .context("failed writing file to filesystem")?;
         println!("Added cluster \"{}\"", cluster_name);
+        Ok(())
+    }
+}
+
+impl RemoveCluster {
+    pub fn run(&self, current_config: &mut crate::config::Config) -> Result<()> {
+        let index = current_config
+            .clusters
+            .iter()
+            .position(|c| c.name == self.name)
+            .with_context(|| {
+                format!(
+                    "Could not delete cluster: cluster with name '{}' does not exists",
+                    self.name
+                )
+            })?;
+        current_config.clusters.remove(index);
+        let updated_config_yaml =
+            serde_yaml::to_string(&current_config).context("invalid config yaml format")?;
+        std::fs::write(&current_config.file_path, updated_config_yaml)
+            .context("failed writing file to filesystem")?;
+        println!("Removed cluster \"{}\"", self.name);
         Ok(())
     }
 }

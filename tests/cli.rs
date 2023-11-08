@@ -211,7 +211,7 @@ fn test_kofr_config_add_cluster() {
     ))
     .arg("config")
     .arg("add-cluster")
-    .arg("--name=test")
+    .arg("test")
     .arg(format!("--hosts={}", hosts))
     .assert()
     .success()
@@ -250,4 +250,56 @@ fn test_kofr_config_add_cluster() {
     .assert()
     .success()
     .stdout(predicate::str::contains("Switched to cluster \"test\""));
+}
+
+#[test]
+fn kofr_config_add_cluster_that_already_exists() {
+    let config_file = common::config_with_one_cluster("dev", "http://localhost:8083/");
+    let dev_server_1 = KcTestServer::new();
+    let dev_server_2 = KcTestServer::new();
+    let hosts = format!("{},{},", dev_server_1.base_url(), dev_server_2.base_url());
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("add-cluster")
+    .arg("dev")
+    .arg(format!("--hosts={}", hosts))
+    .assert()
+    .failure()
+    .stderr(predicate::str::contains(
+        "Error: Cluster \"dev\" already exists.",
+    ));
+}
+
+#[test]
+fn kofr_config_delete_cluster() {
+    let config_file = common::config_with_one_cluster("dev", "http://localhost:8083/");
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("remove-cluster")
+    .arg("dev")
+    .assert()
+    .success()
+    .stdout(predicate::str::contains("Removed cluster \"dev\""));
+
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("remove-cluster")
+    .arg("dev")
+    .assert()
+    .failure()
+    .stderr(predicate::str::contains(
+        "Could not delete cluster: cluster with name 'dev' does not exists",
+    ));
 }

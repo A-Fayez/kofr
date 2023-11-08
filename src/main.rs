@@ -42,7 +42,14 @@ fn main() -> Result<()> {
                 }
                 std::process::exit(exitcode::OK);
             }
-            ConfigAction::AddCluster(add_cluster) => add_cluster.run(&mut cluster_config)?,
+            ConfigAction::AddCluster(add_cluster) => {
+                add_cluster.run(&mut cluster_config)?;
+                std::process::exit(exitcode::OK);
+            }
+            ConfigAction::RemoveCluster(remove) => {
+                remove.run(&mut cluster_config)?;
+                std::process::exit(exitcode::OK);
+            }
         },
         Action::Cluster(status) => {
             status.run(&cluster_config)?;
