@@ -197,3 +197,57 @@ fn test_kofr_cluster_status() {
     .success()
     .stdout(predicate::str::contains("Offline").count(2));
 }
+
+#[test]
+fn test_kofr_config_add_cluster() {
+    let config_file = common::config_with_one_cluster("dev", "http://localhost:8083/");
+    let test_server_1 = KcTestServer::new();
+    let test_server_2 = KcTestServer::new();
+    let hosts = format!("{},{},", test_server_1.base_url(), test_server_2.base_url());
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("add-cluster")
+    .arg("--name=test")
+    .arg(format!("--hosts={}", hosts))
+    .assert()
+    .success()
+    .stdout(predicate::str::contains("Added cluster \"test\""));
+
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("get-clusters")
+    .assert()
+    .success()
+    .stdout(predicate::str::contains("test"));
+
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("current-context")
+    .assert()
+    .success()
+    .stdout(predicate::str::contains("test"));
+
+    let mut cmd = Command::cargo_bin("kofr").unwrap();
+    cmd.arg(format!(
+        "--config-file={}",
+        config_file.path().to_string_lossy()
+    ))
+    .arg("config")
+    .arg("use-cluster")
+    .arg("test")
+    .assert()
+    .success()
+    .stdout(predicate::str::contains("Switched to cluster \"test\""));
+}

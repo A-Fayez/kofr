@@ -42,6 +42,7 @@ fn main() -> Result<()> {
                 }
                 std::process::exit(exitcode::OK);
             }
+            ConfigAction::AddCluster(add_cluster) => add_cluster.run(&mut cluster_config)?,
         },
         Action::Cluster(status) => {
             status.run(&cluster_config)?;

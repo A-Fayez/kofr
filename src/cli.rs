@@ -1,11 +1,14 @@
-use std::path::PathBuf;
+use std::{ops::Deref, path::PathBuf};
 
 use anyhow::{ensure, Context, Ok, Result};
 use clap::{Args, Parser, Subcommand};
 use clap_stdin::FileOrStdin;
 use tabled::{settings::Style, Table};
 
-use crate::connect::{ConnectorConfig, CreateConnector, DescribeConnector, HTTPClient};
+use crate::{
+    config::ClusterContext,
+    connect::{ConnectorConfig, CreateConnector, DescribeConnector, HTTPClient},
+};
 
 /// Kafka Connect CLI for connect cluster management
 #[derive(Parser, Debug)]
@@ -44,17 +47,37 @@ pub struct List {}
 
 #[derive(Subcommand, Debug)]
 pub enum ConfigAction {
+    /// Sets a current cluster context in the configuration
     #[clap(name = "use-cluster")]
     UseCluster(UseCluster),
+
+    /// Displays the current context
     #[clap(name = "current-context")]
     CurrentContext,
+
+    /// Displays available clusters in the configuration file
     #[clap(name = "get-clusters")]
     GetClusters,
+
+    /// Add a new cluster
+    #[clap(name = "add-cluster")]
+    AddCluster(AddCluster),
 }
 
 #[derive(Args, Debug)]
 pub struct UseCluster {
     pub cluster: String,
+}
+
+#[derive(Args, Debug)]
+pub struct AddCluster {
+    /// cluster name
+    #[arg(short = 'n', long = "name")]
+    pub name: String,
+
+    /// Comma seperated list of valid http kafka connect hosts
+    #[arg(long = "hosts")]
+    pub hosts: String,
 }
 
 #[derive(Subcommand, Debug)]
@@ -250,9 +273,37 @@ impl UseCluster {
 
         current_config.current_cluster = Some(self.cluster.clone());
 
-        let updated_config_yaml = serde_yaml::to_string(&current_config)?;
-        std::fs::write(&current_config.file_path, updated_config_yaml)?;
+        let updated_config_yaml =
+            serde_yaml::to_string(&current_config).context("invalid config yaml format")?;
+        std::fs::write(&current_config.file_path, updated_config_yaml)
+            .context("failed writing file to filesystem")?;
         println!("Switched to cluster \"{}\"", self.cluster);
+        Ok(())
+    }
+}
+
+impl AddCluster {
+    pub fn run(&self, current_config: &mut crate::config::Config) -> Result<()> {
+        let cluster_name = &self.name;
+        let hosts: Vec<String> = self
+            .hosts
+            .split(",")
+            .collect::<Vec<&str>>()
+            .iter()
+            .map(|&s| s.to_string())
+            .collect();
+
+        current_config.clusters.push(ClusterContext {
+            name: cluster_name.to_string(),
+            hosts,
+        });
+        current_config.current_cluster = Some(cluster_name.to_string());
+
+        let updated_config_yaml =
+            serde_yaml::to_string(&current_config).context("invalid config yaml format")?;
+        std::fs::write(&current_config.file_path, updated_config_yaml)
+            .context("failed writing file to filesystem")?;
+        println!("Added cluster \"{}\"", cluster_name);
         Ok(())
     }
 }
