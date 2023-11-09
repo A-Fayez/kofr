@@ -2,6 +2,7 @@ mod cli;
 mod cluster;
 mod config;
 mod connect;
+mod tasks;
 
 use std::{path::PathBuf, time::Duration};
 

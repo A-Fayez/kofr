@@ -5,6 +5,8 @@ use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use ureq::{Agent, Error};
 
+use crate::tasks::*;
+
 pub struct HTTPClient {
     pub config: HTTPClientConfig,
 }
@@ -351,22 +353,6 @@ pub struct Connector {
     pub tasks: Vec<Task>,
     #[serde(rename = "type")]
     pub connector_type: ConnectorType,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct Task {
-    pub connector: ConnectorName,
-    #[serde(rename = "task")]
-    pub id: usize,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TaskStatus {
-    pub id: usize,
-    pub state: State,
-    pub worker_id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
