@@ -5,7 +5,7 @@ use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use ureq::{Agent, Error};
 
-use crate::tasks::*;
+use crate::tasks::{Task, TaskStatus};
 
 pub struct HTTPClient {
     pub config: HTTPClientConfig,
