@@ -433,6 +433,31 @@ impl TaskRestart {
     }
 }
 
+impl TaskStatus {
+    pub fn run(self, connect_host: &str) -> Result<()> {
+        let binding = crate::tasks::list_tasks(connect_host, &self.connector_name)?;
+        let task_response = binding
+            .iter()
+            .find(|t| &t.id.task == &self.task_id && &t.id.connector == &self.connector_name)
+            .ok_or(anyhow!(
+                "No status found for task {}-{}",
+                &self.connector_name,
+                &self.task_id
+            ))?;
+
+        let task_status =
+            crate::tasks::task_status(connect_host, &self.connector_name, self.task_id)?;
+
+        let task_status = serde_json::json!({
+            "status": task_status,
+            "config": task_response.config,
+        });
+        let task_status = serde_json::to_string_pretty(&task_status)?;
+        println!("{}", task_status);
+        Ok(())
+    }
+}
+
 struct Editor {
     name: String,
 }
