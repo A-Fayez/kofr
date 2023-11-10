@@ -40,6 +40,11 @@ pub enum Action {
     /// check cluster status
     #[command(subcommand)]
     Cluster(Cluster),
+
+    /// operate on connector tasks
+    #[command(subcommand)]
+    #[clap(alias = "tasks")]
+    Task(Task),
 }
 
 #[derive(Args, Debug)]
@@ -163,6 +168,36 @@ pub struct Restart {
 #[derive(Subcommand, Debug)]
 pub enum Cluster {
     Status,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Task {
+    /// list active tasks of a connector
+    #[clap(alias = "ls")]
+    List(TaskList),
+
+    /// restart an indicidual connector's task
+    Restart(TaskRestart),
+
+    /// get a task’s status.
+    Status(TaskStatus),
+}
+
+#[derive(Args, Debug)]
+pub struct TaskList {
+    pub connector_name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct TaskRestart {
+    pub connector_name: String,
+    pub task_id: String,
+}
+
+#[derive(Args, Debug)]
+pub struct TaskStatus {
+    pub connector_name: String,
+    pub task_id: String,
 }
 
 impl List {
@@ -368,6 +403,24 @@ impl Cluster {
         );
         let status_table = Table::new(hosts_status).with(Style::blank()).to_string();
         println!("{}", status_table);
+        Ok(())
+    }
+}
+
+impl TaskList {
+    pub fn run(self, connect_host: &str) -> Result<()> {
+        let mut tasks_status = Vec::<crate::tasks::TaskStatus>::new();
+        let _ = crate::tasks::list_tasks(connect_host, &self.connector_name)?
+            .iter()
+            .try_for_each(|t| {
+                let status =
+                    crate::tasks::task_status(connect_host, &self.connector_name, t.id.task)?;
+                Ok(tasks_status.push(status))
+            });
+        let tasks_table = Table::new(tasks_status).with(Style::blank()).to_string();
+        println!("Active tasks of connector: '{}'", &self.connector_name);
+        println!("{}", tasks_table);
+
         Ok(())
     }
 }

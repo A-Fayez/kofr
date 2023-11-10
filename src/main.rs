@@ -84,6 +84,11 @@ fn main() -> Result<()> {
             ConnectorAction::Restart(restart) => restart.run(client)?,
             ConnectorAction::Delete(delete) => delete.run(client)?,
         },
+        Action::Task(task) => match task {
+            Task::List(list) => list.run(&uri)?,
+            Task::Restart(restart) => unimplemented!(),
+            Task::Status(status) => unimplemented!(),
+        },
         _ => (),
     }
 
