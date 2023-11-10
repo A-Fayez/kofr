@@ -409,18 +409,15 @@ impl Cluster {
 
 impl TaskList {
     pub fn run(self, connect_host: &str) -> Result<()> {
-        let mut tasks_status = Vec::<crate::tasks::TaskStatus>::new();
-        let _ = crate::tasks::list_tasks(connect_host, &self.connector_name)?
-            .iter()
-            .try_for_each(|t| {
-                let status =
-                    crate::tasks::task_status(connect_host, &self.connector_name, t.id.task)?;
-                Ok(tasks_status.push(status))
-            });
-        let tasks_table = Table::new(tasks_status).with(Style::blank()).to_string();
+        let tasks_status: Result<Vec<crate::tasks::TaskStatus>> =
+            crate::tasks::list_tasks(connect_host, &self.connector_name)?
+                .iter()
+                .map(|t| crate::tasks::task_status(connect_host, &self.connector_name, t.id.task))
+                .collect();
+
+        let tasks_table = Table::new(tasks_status?).with(Style::blank()).to_string();
         println!("Active tasks of connector: '{}'", &self.connector_name);
         println!("{}", tasks_table);
-
         Ok(())
     }
 }
