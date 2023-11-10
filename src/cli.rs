@@ -40,6 +40,11 @@ pub enum Action {
     /// check cluster status
     #[command(subcommand)]
     Cluster(Cluster),
+
+    /// operate on connector tasks
+    #[command(subcommand)]
+    #[clap(alias = "tasks")]
+    Task(Task),
 }
 
 #[derive(Args, Debug)]
@@ -165,6 +170,36 @@ pub enum Cluster {
     Status,
 }
 
+#[derive(Subcommand, Debug)]
+pub enum Task {
+    /// list active tasks of a connector
+    #[clap(alias = "ls")]
+    List(TaskList),
+
+    /// restart an indicidual connector's task
+    Restart(TaskRestart),
+
+    /// get a task’s status and config.
+    Status(TaskStatus),
+}
+
+#[derive(Args, Debug)]
+pub struct TaskList {
+    pub connector_name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct TaskRestart {
+    pub connector_name: String,
+    pub task_id: usize,
+}
+
+#[derive(Args, Debug)]
+pub struct TaskStatus {
+    pub connector_name: String,
+    pub task_id: usize,
+}
+
 impl List {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
         let connectors = connect_client.list_connectors_status()?;
@@ -248,25 +283,33 @@ impl Config {
 
 impl Pause {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        connect_client.pause_connector(&self.name)
+        connect_client.pause_connector(&self.name)?;
+        println!("connector: \"{}\" paused successfully", &self.name);
+        Ok(())
     }
 }
 
 impl Resume {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        connect_client.resume_connector(&self.name)
+        connect_client.resume_connector(&self.name)?;
+        println!("connector: \"{}\" resumed successfully", &self.name);
+        Ok(())
     }
 }
 
 impl Restart {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        connect_client.restart_connector(&self.name, self.include_tasks, self.only_failed)
+        connect_client.restart_connector(&self.name, self.include_tasks, self.only_failed)?;
+        println!("connector: \"{}\" restarted sucessfully", &self.name);
+        Ok(())
     }
 }
 
 impl Delete {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        connect_client.delete_connector(&self.name)
+        connect_client.delete_connector(&self.name)?;
+        println!("connector: \"{}\" deleted", &self.name);
+        Ok(())
     }
 }
 
@@ -368,6 +411,57 @@ impl Cluster {
         );
         let status_table = Table::new(hosts_status).with(Style::blank()).to_string();
         println!("{}", status_table);
+        Ok(())
+    }
+}
+
+impl TaskList {
+    pub fn run(self, connect_host: &str) -> Result<()> {
+        let tasks_status: Result<Vec<crate::tasks::TaskStatus>> =
+            crate::tasks::list_tasks(connect_host, &self.connector_name)?
+                .iter()
+                .map(|t| crate::tasks::task_status(connect_host, &self.connector_name, t.id.task))
+                .collect();
+
+        let tasks_table = Table::new(tasks_status?).with(Style::blank()).to_string();
+        println!("Active tasks of connector: '{}'", &self.connector_name);
+        println!("{}", tasks_table);
+        Ok(())
+    }
+}
+
+impl TaskRestart {
+    pub fn run(self, connect_host: &str) -> Result<()> {
+        crate::tasks::restart_task(connect_host, &self.connector_name, self.task_id)?;
+        println!(
+            "restarted task: '{}/{}'",
+            &self.connector_name, self.task_id
+        );
+        Ok(())
+    }
+}
+
+impl TaskStatus {
+    pub fn run(self, connect_host: &str) -> Result<()> {
+        let binding = crate::tasks::list_tasks(connect_host, &self.connector_name)?;
+        let task_response = binding
+            .iter()
+            .find(|t| &t.id.task == &self.task_id && &t.id.connector == &self.connector_name)
+            .ok_or(anyhow!(
+                "No status found for task {}-{}",
+                &self.connector_name,
+                &self.task_id
+            ))?;
+
+        let task_status =
+            crate::tasks::task_status(connect_host, &self.connector_name, self.task_id)?;
+
+        let task_status = serde_json::json!({
+            "status": task_status,
+            "config": task_response.config,
+        });
+        let task_status = serde_json::to_string_pretty(&task_status)?;
+        println!("{}", task_status);
         Ok(())
     }
 }

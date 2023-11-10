@@ -5,6 +5,8 @@ use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use ureq::{Agent, Error};
 
+use crate::tasks::{Task, TaskStatus};
+
 pub struct HTTPClient {
     pub config: HTTPClientConfig,
 }
@@ -256,7 +258,6 @@ impl HTTPClient {
         {
             Ok(response) => match response.status() {
                 200 | 204 => {
-                    println!("connector: \"{}\" restarted sucessfully", name);
                     Ok(())
                 }
                 202 => {
@@ -288,7 +289,6 @@ impl HTTPClient {
         let pause_endpoint = format!("{}/{}/pause", self.valid_uri(uri), name);
         match self.config.http_agent.put(&pause_endpoint).call() {
             Ok(_) => {
-                println!("connector: \"{}\" paused successfully", name);
                 Ok(())
             }
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
@@ -301,7 +301,6 @@ impl HTTPClient {
         let resume_endpoint = format!("{}/{}/resume", self.valid_uri(uri), name);
         match self.config.http_agent.put(&resume_endpoint).call() {
             Ok(_) => {
-                println!("connector: \"{}\" resumed successfully", name);
                 Ok(())
             }
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
@@ -314,7 +313,6 @@ impl HTTPClient {
         let delete_endpoint = format!("{}/{}/", self.valid_uri(uri), name);
         match self.config.http_agent.delete(&delete_endpoint).call() {
             Ok(_) => {
-                println!("connector: \"{}\" deleted", name);
                 Ok(())
             }
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
@@ -351,22 +349,6 @@ pub struct Connector {
     pub tasks: Vec<Task>,
     #[serde(rename = "type")]
     pub connector_type: ConnectorType,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct Task {
-    pub connector: ConnectorName,
-    #[serde(rename = "task")]
-    pub id: usize,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TaskStatus {
-    pub id: usize,
-    pub state: State,
-    pub worker_id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

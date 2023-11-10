@@ -2,6 +2,7 @@ mod cli;
 mod cluster;
 mod config;
 mod connect;
+mod tasks;
 
 use std::{path::PathBuf, time::Duration};
 
@@ -82,6 +83,11 @@ fn main() -> Result<()> {
             ConnectorAction::Resume(resume) => resume.run(client)?,
             ConnectorAction::Restart(restart) => restart.run(client)?,
             ConnectorAction::Delete(delete) => delete.run(client)?,
+        },
+        Action::Task(task) => match task {
+            Task::List(list) => list.run(&uri)?,
+            Task::Restart(restart) => restart.run(&uri)?,
+            Task::Status(status) => status.run(&uri)?,
         },
         _ => (),
     }
