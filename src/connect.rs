@@ -258,7 +258,6 @@ impl HTTPClient {
         {
             Ok(response) => match response.status() {
                 200 | 204 => {
-                    println!("connector: \"{}\" restarted sucessfully", name);
                     Ok(())
                 }
                 202 => {
@@ -290,7 +289,6 @@ impl HTTPClient {
         let pause_endpoint = format!("{}/{}/pause", self.valid_uri(uri), name);
         match self.config.http_agent.put(&pause_endpoint).call() {
             Ok(_) => {
-                println!("connector: \"{}\" paused successfully", name);
                 Ok(())
             }
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
@@ -303,7 +301,6 @@ impl HTTPClient {
         let resume_endpoint = format!("{}/{}/resume", self.valid_uri(uri), name);
         match self.config.http_agent.put(&resume_endpoint).call() {
             Ok(_) => {
-                println!("connector: \"{}\" resumed successfully", name);
                 Ok(())
             }
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
@@ -316,7 +313,6 @@ impl HTTPClient {
         let delete_endpoint = format!("{}/{}/", self.valid_uri(uri), name);
         match self.config.http_agent.delete(&delete_endpoint).call() {
             Ok(_) => {
-                println!("connector: \"{}\" deleted", name);
                 Ok(())
             }
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),

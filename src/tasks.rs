@@ -60,26 +60,6 @@ pub fn restart_task(host: &str, connector_name: &str, task_id: usize) -> Result<
     }
 }
 
-pub fn get_task_state(host: &str, connector_name: &str, task_id: usize) -> Result<TaskState> {
-    let endpoint = valid_uri(host);
-    let endpoint = format!("{}/{}/tasks/{}/status", &endpoint, connector_name, task_id);
-    match ureq::get(&endpoint)
-        .set("Accept", "application/json")
-        .call()
-    {
-        Ok(response) => Ok(response
-            .into_json::<TaskStatus>()
-            .context("invalid json returned from api")?
-            .state),
-        Err(ureq::Error::Status(404, _)) => Err(anyhow!(
-            "No status found for task {}-{}",
-            connector_name,
-            task_id
-        )),
-        Err(err) => Err(anyhow!("{}", err)),
-    }
-}
-
 fn valid_uri(uri: &str) -> String {
     if uri.ends_with('/') {
         return format!("{}connectors", uri);

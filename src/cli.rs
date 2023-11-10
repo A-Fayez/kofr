@@ -179,7 +179,7 @@ pub enum Task {
     /// restart an indicidual connector's task
     Restart(TaskRestart),
 
-    /// get a task’s status.
+    /// get a task’s status and config.
     Status(TaskStatus),
 }
 
@@ -283,25 +283,33 @@ impl Config {
 
 impl Pause {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        connect_client.pause_connector(&self.name)
+        connect_client.pause_connector(&self.name)?;
+        println!("connector: \"{}\" paused successfully", &self.name);
+        Ok(())
     }
 }
 
 impl Resume {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        connect_client.resume_connector(&self.name)
+        connect_client.resume_connector(&self.name)?;
+        println!("connector: \"{}\" resumed successfully", &self.name);
+        Ok(())
     }
 }
 
 impl Restart {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        connect_client.restart_connector(&self.name, self.include_tasks, self.only_failed)
+        connect_client.restart_connector(&self.name, self.include_tasks, self.only_failed)?;
+        println!("connector: \"{}\" restarted sucessfully", &self.name);
+        Ok(())
     }
 }
 
 impl Delete {
     pub fn run(self, connect_client: HTTPClient) -> Result<()> {
-        connect_client.delete_connector(&self.name)
+        connect_client.delete_connector(&self.name)?;
+        println!("connector: \"{}\" deleted", &self.name);
+        Ok(())
     }
 }
 
