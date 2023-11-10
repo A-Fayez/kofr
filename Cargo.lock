@@ -598,7 +598,6 @@ dependencies = [
  "tabled",
  "tempfile",
  "thiserror",
- "tokio",
  "ureq",
 ]
 
