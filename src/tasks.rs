@@ -60,7 +60,7 @@ pub fn restart_task(host: &str, connector_name: &str, task_id: usize) -> Result<
     }
 }
 
-fn valid_uri(uri: &str) -> String {
+pub fn valid_uri(uri: &str) -> String {
     if uri.ends_with('/') {
         return format!("{}connectors", uri);
     }

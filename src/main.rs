@@ -3,6 +3,7 @@ mod cluster;
 mod config;
 mod connect;
 mod tasks;
+mod topics;
 
 use std::{path::PathBuf, time::Duration};
 
@@ -88,6 +89,10 @@ fn main() -> Result<()> {
             Task::List(list) => list.run(&uri)?,
             Task::Restart(restart) => restart.run(&uri)?,
             Task::Status(status) => status.run(&uri)?,
+        },
+        Action::Topic(topic) => match topic {
+            Topic::List(list) => list.run(&uri)?,
+            Topic::Reset(reset) => reset.run(&uri)?,
         },
         _ => (),
     }

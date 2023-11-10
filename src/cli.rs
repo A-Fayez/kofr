@@ -45,6 +45,11 @@ pub enum Action {
     #[command(subcommand)]
     #[clap(alias = "tasks")]
     Task(Task),
+
+    /// operate on connector's topics
+    #[command(subcommand)]
+    #[clap(alias = "topics")]
+    Topic(Topic),
 }
 
 #[derive(Args, Debug)]
@@ -198,6 +203,26 @@ pub struct TaskRestart {
 pub struct TaskStatus {
     pub connector_name: String,
     pub task_id: usize,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Topic {
+    /// list connector's topics
+    #[clap(alias = "ls")]
+    List(TopicList),
+
+    /// Resets the set of topic names that the connector has been using since its creation or since the last time its set of active topics was reset.
+    Reset(TopicReset),
+}
+
+#[derive(Args, Debug)]
+pub struct TopicList {
+    pub connector_name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct TopicReset {
+    pub connector_name: String,
 }
 
 impl List {
@@ -466,6 +491,22 @@ impl TaskStatus {
     }
 }
 
+impl TopicList {
+    pub fn run(self, connect_host: &str) -> Result<()> {
+        let topics = crate::topics::list_topics(connect_host, &self.connector_name)?;
+        let topics = serde_json::to_string_pretty(&topics)?;
+        println!("{}", topics);
+        Ok(())
+    }
+}
+
+impl TopicReset {
+    pub fn run(self, connect_host: &str) -> Result<()> {
+        crate::topics::reset(connect_host, &self.connector_name)?;
+        println!("resetted topics successfully of connector: '{}'", self.connector_name);
+        Ok(())
+    }
+}
 struct Editor {
     name: String,
 }
