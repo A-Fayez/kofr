@@ -86,7 +86,7 @@ fn main() -> Result<()> {
         },
         Action::Task(task) => match task {
             Task::List(list) => list.run(&uri)?,
-            Task::Restart(restart) => unimplemented!(),
+            Task::Restart(restart) => restart.run(&uri)?,
             Task::Status(status) => unimplemented!(),
         },
         _ => (),

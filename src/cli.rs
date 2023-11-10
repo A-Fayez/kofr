@@ -191,13 +191,13 @@ pub struct TaskList {
 #[derive(Args, Debug)]
 pub struct TaskRestart {
     pub connector_name: String,
-    pub task_id: String,
+    pub task_id: usize,
 }
 
 #[derive(Args, Debug)]
 pub struct TaskStatus {
     pub connector_name: String,
-    pub task_id: String,
+    pub task_id: usize,
 }
 
 impl List {
@@ -418,6 +418,17 @@ impl TaskList {
         let tasks_table = Table::new(tasks_status?).with(Style::blank()).to_string();
         println!("Active tasks of connector: '{}'", &self.connector_name);
         println!("{}", tasks_table);
+        Ok(())
+    }
+}
+
+impl TaskRestart {
+    pub fn run(self, connect_host: &str) -> Result<()> {
+        crate::tasks::restart_task(connect_host, &self.connector_name, self.task_id)?;
+        println!(
+            "restarted task: '{}/{}'",
+            &self.connector_name, self.task_id
+        );
         Ok(())
     }
 }

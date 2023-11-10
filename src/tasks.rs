@@ -53,6 +53,9 @@ pub fn restart_task(host: &str, connector_name: &str, task_id: usize) -> Result<
         .call()
     {
         Ok(_) => Ok(()),
+        Err(ureq::Error::Status(404, _)) => {
+            Err(anyhow!("task: '{}/{}' not found", connector_name, task_id))
+        }
         Err(err) => Err(anyhow!("{err}")),
     }
 }
