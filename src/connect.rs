@@ -20,14 +20,18 @@ impl HTTPClient {
         let uri = &self.config.connect_uri;
         let _endpoint = self.valid_uri(uri);
 
-        let response = self
+        let response = match self
             .config
             .http_agent
             .get(&_endpoint)
             .set("Accept", "application/json")
             .query("expand", "status")
             .call()
-            .with_context(|| format!("Failed sending request to \"{}\"", &_endpoint))?;
+        {
+            Ok(response) => response,
+            Err(ureq::Error::Status(_, r)) => return Err(anyhow!("{}", r.into_string()?)),
+            Err(err) => return Err(anyhow!("{}", err)),
+        };
 
         let response_body = response.into_string()?;
 
@@ -143,6 +147,7 @@ impl HTTPClient {
             .http_agent
             .post(&_endpoint)
             .set("Content-Type", "application/json")
+            .set("Accept", "application/json")
             .send_json(c)
         {
             Ok(response) => response
@@ -215,6 +220,7 @@ impl HTTPClient {
             Err(ureq::Error::Status(404, _)) => {
                 Err(anyhow!("connector: \"{}\" was not found", name))
             }
+            Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
             Err(err) => Err(anyhow!("{}", err)),
         }
     }
@@ -235,6 +241,7 @@ impl HTTPClient {
             Err(ureq::Error::Status(404, _)) => {
                 Err(anyhow!("connector: \"{}\" was not found", name))
             }
+            Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
             Err(err) => Err(anyhow!("{}", err)),
         }
     }
@@ -257,9 +264,7 @@ impl HTTPClient {
             .call()
         {
             Ok(response) => match response.status() {
-                200 | 204 => {
-                    Ok(())
-                }
+                200 | 204 => Ok(()),
                 202 => {
                     let response: ConnectorStatus = response.into_json()?;
                     let response = serde_json::to_string_pretty(&response)?;
@@ -288,9 +293,7 @@ impl HTTPClient {
         let uri = &self.config.connect_uri;
         let pause_endpoint = format!("{}/{}/pause", self.valid_uri(uri), name);
         match self.config.http_agent.put(&pause_endpoint).call() {
-            Ok(_) => {
-                Ok(())
-            }
+            Ok(_) => Ok(()),
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
             Err(err) => Err(anyhow!("{}", err)),
         }
@@ -300,9 +303,7 @@ impl HTTPClient {
         let uri = &self.config.connect_uri;
         let resume_endpoint = format!("{}/{}/resume", self.valid_uri(uri), name);
         match self.config.http_agent.put(&resume_endpoint).call() {
-            Ok(_) => {
-                Ok(())
-            }
+            Ok(_) => Ok(()),
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
             Err(err) => Err(anyhow!("{}", err)),
         }
@@ -312,9 +313,7 @@ impl HTTPClient {
         let uri = &self.config.connect_uri;
         let delete_endpoint = format!("{}/{}/", self.valid_uri(uri), name);
         match self.config.http_agent.delete(&delete_endpoint).call() {
-            Ok(_) => {
-                Ok(())
-            }
+            Ok(_) => Ok(()),
             Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
             Err(err) => Err(anyhow!("{err}")),
         }

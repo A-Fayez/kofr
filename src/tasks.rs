@@ -20,6 +20,7 @@ pub fn list_tasks(host: &str, connector_name: &str) -> Result<Vec<TaskResponse>>
         Err(ureq::Error::Status(404, _)) => {
             Err(anyhow!("connector: \"{}\" was not found", connector_name))
         }
+        Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
         Err(err) => Err(anyhow!("{}", err)),
     }
 }
@@ -40,6 +41,7 @@ pub fn task_status(host: &str, connector_name: &str, task_id: usize) -> Result<T
             connector_name,
             task_id
         )),
+        Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
         Err(err) => Err(anyhow!("{}", err)),
     }
 }
@@ -56,6 +58,7 @@ pub fn restart_task(host: &str, connector_name: &str, task_id: usize) -> Result<
         Err(ureq::Error::Status(404, _)) => {
             Err(anyhow!("task: '{}/{}' not found", connector_name, task_id))
         }
+        Err(ureq::Error::Status(_, r)) => Err(anyhow!("{}", r.into_string()?)),
         Err(err) => Err(anyhow!("{err}")),
     }
 }
