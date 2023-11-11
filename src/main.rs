@@ -2,6 +2,7 @@ mod cli;
 mod cluster;
 mod config;
 mod connect;
+mod connector_plugins;
 mod tasks;
 mod topics;
 
@@ -93,6 +94,10 @@ fn main() -> Result<()> {
         Action::Topic(topic) => match topic {
             Topic::List(list) => list.run(&uri)?,
             Topic::Reset(reset) => reset.run(&uri)?,
+        },
+        Action::Plugin(plugin) => match plugin {
+            Plugin::List(list) => list.run(&uri)?,
+            Plugin::ValidateConfig(validate_config) => validate_config.run(&uri)?,
         },
         _ => (),
     }
