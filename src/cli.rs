@@ -1,4 +1,5 @@
-use std::{ops::Deref, path::PathBuf};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 use anyhow::{anyhow, ensure, Context, Ok, Result};
 use clap::{Args, Parser, Subcommand};
@@ -50,6 +51,11 @@ pub enum Action {
     #[command(subcommand)]
     #[clap(alias = "topics")]
     Topic(Topic),
+
+    /// operate on connectors plugins
+    #[command(subcommand)]
+    #[clap(alias = "plugins")]
+    Plugin(Plugin),
 }
 
 #[derive(Args, Debug)]
@@ -223,6 +229,30 @@ pub struct TopicList {
 #[derive(Args, Debug)]
 pub struct TopicReset {
     pub connector_name: String,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Plugin {
+    /// list connector plugins
+    #[clap(alias = "ls")]
+    List(PluginList),
+
+    /// Validate the provided configuration values against the configuration definition.
+    ValidateConfig(ValidateConfig),
+}
+
+#[derive(Args, Debug)]
+pub struct PluginList {}
+
+#[derive(Args, Debug)]
+pub struct ValidateConfig {
+    /// The class name of the connector plugin
+    #[arg(short = 'n', long = "name")]
+    pub class_name: Option<String>,
+
+    /// user provided configuration, read from file or stdin
+    #[arg(short = 'f', long = "file")]
+    pub config: FileOrStdin,
 }
 
 impl List {
@@ -503,7 +533,40 @@ impl TopicList {
 impl TopicReset {
     pub fn run(self, connect_host: &str) -> Result<()> {
         crate::topics::reset(connect_host, &self.connector_name)?;
-        println!("resetted topics successfully of connector: '{}'", self.connector_name);
+        println!(
+            "resetted topics successfully of connector: '{}'",
+            self.connector_name
+        );
+        Ok(())
+    }
+}
+
+impl PluginList {
+    pub fn run(self, connect_host: &str) -> Result<()> {
+        let plugins = crate::connector_plugins::list_plugins(connect_host)?;
+        let plugins = serde_json::to_string_pretty(&plugins)?;
+        println!("{}", plugins);
+        Ok(())
+    }
+}
+
+impl ValidateConfig {
+    pub fn run(self, connect_host: &str) -> Result<()> {
+        let config = self.config;
+        let config: HashMap<String, String> = serde_json::from_str(&config)?;
+
+        let class_name: String = match self.class_name {
+            Some(name) => name,
+            None => config
+                .get("connector.class")
+                .ok_or(anyhow!("no connector.class was provided"))?
+                .to_string(),
+        };
+
+        let response =
+            crate::connector_plugins::validate_config(connect_host, &class_name, config)?;
+        let response = serde_json::to_string_pretty(&response)?;
+        println!("{}", response);
         Ok(())
     }
 }
