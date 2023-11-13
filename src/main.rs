@@ -17,7 +17,7 @@ use cli::*;
 use connect::HTTPClient;
 
 fn main() -> Result<()> {
-    let mut cluster_config = config::Config::new();
+    let mut cluster_config = config::Config::new()?;
     let cli = Cli::parse();
     let mut default_config_path = home_dir().context("could not get user's home dir")?;
     default_config_path.push(".kofr/config");

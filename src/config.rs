@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Ok, Result};
+use home::home_dir;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -13,12 +14,22 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> Result<Self> {
+        let mut default_config_path = home_dir().context("could not get user's home dir")?;
+        default_config_path.push(".kofr/config");
+        let config = Self {
             current_cluster: None,
             clusters: Vec::new(),
             file_path: PathBuf::new(),
+        };
+        if !default_config_path.exists() {
+            std::fs::create_dir_all(default_config_path.parent().unwrap())?;
+            let config_yaml =
+                serde_yaml::to_string(&config).context("invalid config yaml format")?;
+            std::fs::write(&default_config_path, config_yaml)
+                .context("failed writing file to filesystem")?;
         }
+        Ok(config)
     }
 
     pub fn with_file(mut self, path: PathBuf) -> Result<Self> {
