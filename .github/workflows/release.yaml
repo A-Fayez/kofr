@@ -1,0 +1,54 @@
+name: Release kofr on Linux and MacOS
+
+on:
+  push:
+    tags:
+      - '*' 
+env:
+  CARGO_TERM_COLOR: always
+  LINUX_BUILD_TARGET: x86_64-unknown-linux-musl
+  MACOS_BUILD_TARGET: x86_64-apple-darwin
+  BINARY_NAME: kofr
+
+jobs:
+  linux:
+    name: build and release for linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout sources
+        uses: actions/checkout@v2
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: install linux-musl
+        run: sudo apt install linux-musl
+
+      - name: Run cargo build --release
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target ${{.env.LINUX_BUILD_TARGET}}
+      
+      - name: archive binary
+        run: tar -czvf kofr-linux-amd64.tar.gz -C ./target/${{.env.LINUX_BUILD_TARGET}}/ kofr
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kofr-linux
+          path: kofr-linux-amd64.tar.gz
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: kofr-linux
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: kofr-linux-amd64.tar.gz
