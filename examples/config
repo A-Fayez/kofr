@@ -1,0 +1,8 @@
+current-cluster: dev
+clusters:
+- name: dev
+  hosts:
+  - http://localhost:8083
+- name: test
+  hosts:
+  - http://localhost:8080
