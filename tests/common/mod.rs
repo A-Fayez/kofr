@@ -90,7 +90,8 @@ clusters:
         config.push_str(&format!(
             r#"
   - {}
-        "#, host
+        "#,
+            host
         ));
     }
     std::fs::write(config_file.path(), config).unwrap();
