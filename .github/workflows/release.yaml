@@ -24,7 +24,7 @@ jobs:
           toolchain: stable
           override: true
       - name: install linux-musl
-        run: sudo apt install linux-musl
+        run: sudo apt install musl-tools -y
 
       - name: Run cargo build --release
         uses: actions-rs/cargo@v1
