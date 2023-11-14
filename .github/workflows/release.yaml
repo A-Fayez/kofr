@@ -17,23 +17,16 @@ jobs:
     steps:
       - name: checkout sources
         uses: actions/checkout@v2
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
       - name: install linux-musl
         run: sudo apt install musl-tools -y
 
       - name: Run cargo build --release
-        uses: actions-rs/cargo@v1
+        uses: gmiam/rust-musl-action@master
         with:
-          command: build
-          args: --release --target $LINUX_BUILD_TARGET
+          args: cargo build --target $LINUX_BUILD_TARGET --release
       
       - name: archive binary
-        run: tar -czvf kofr-linux-amd64.tar.gz -C ./target/$LINUX_BUILD_TARGET/ kofr
+        run: tar -czvf kofr-linux-amd64.tar.gz -C ./target/$LINUX_BUILD_TARGET/release $BINARY_NAME
       
       - uses: actions/upload-artifact@v3
         with:

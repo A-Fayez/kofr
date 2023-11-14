@@ -1,10 +1,14 @@
 name: Kofr build
 on:
   push:
+    paths:
+      - '**.rs'
     branches:
       - main
   
   pull_request:
+    paths:
+      - '**.rs'
     branches:
       - main
 
