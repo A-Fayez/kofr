@@ -393,7 +393,7 @@ impl AddCluster {
         let cluster_name = &self.name;
         let hosts: Vec<String> = self
             .hosts
-            .split(",")
+            .split(',')
             .collect::<Vec<&str>>()
             .iter()
             .map(|&s| s.to_string())
@@ -402,7 +402,7 @@ impl AddCluster {
         if current_config
             .clusters
             .iter()
-            .any(|c| c.name == cluster_name.to_string())
+            .any(|c| c.name == *cluster_name)
         {
             return Err(anyhow!("Cluster \"{}\" already exists.", cluster_name));
         }
@@ -501,7 +501,7 @@ impl TaskStatus {
         let binding = crate::tasks::list_tasks(connect_host, &self.connector_name)?;
         let task_response = binding
             .iter()
-            .find(|t| &t.id.task == &self.task_id && &t.id.connector == &self.connector_name)
+            .find(|t| t.id.task == self.task_id && t.id.connector == self.connector_name)
             .ok_or(anyhow!(
                 "No status found for task {}-{}",
                 &self.connector_name,

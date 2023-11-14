@@ -87,17 +87,17 @@ fn main() -> Result<()> {
             ConnectorAction::Delete(delete) => delete.run(client)?,
         },
         Action::Task(task) => match task {
-            Task::List(list) => list.run(&uri)?,
-            Task::Restart(restart) => restart.run(&uri)?,
-            Task::Status(status) => status.run(&uri)?,
+            Task::List(list) => list.run(uri)?,
+            Task::Restart(restart) => restart.run(uri)?,
+            Task::Status(status) => status.run(uri)?,
         },
         Action::Topic(topic) => match topic {
-            Topic::List(list) => list.run(&uri)?,
-            Topic::Reset(reset) => reset.run(&uri)?,
+            Topic::List(list) => list.run(uri)?,
+            Topic::Reset(reset) => reset.run(uri)?,
         },
         Action::Plugin(plugin) => match plugin {
-            Plugin::List(list) => list.run(&uri)?,
-            Plugin::ValidateConfig(validate_config) => validate_config.run(&uri)?,
+            Plugin::List(list) => list.run(uri)?,
+            Plugin::ValidateConfig(validate_config) => validate_config.run(uri)?,
         },
         _ => (),
     }
