@@ -30,10 +30,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --target ${{.env.LINUX_BUILD_TARGET}}
+          args: --release --target $LINUX_BUILD_TARGET
       
       - name: archive binary
-        run: tar -czvf kofr-linux-amd64.tar.gz -C ./target/${{.env.LINUX_BUILD_TARGET}}/ kofr
+        run: tar -czvf kofr-linux-amd64.tar.gz -C ./target/$LINUX_BUILD_TARGET/ kofr
       
       - uses: actions/upload-artifact@v3
         with:
