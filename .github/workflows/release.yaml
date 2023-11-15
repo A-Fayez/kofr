@@ -33,6 +33,33 @@ jobs:
           name: kofr-linux
           path: kofr-linux-amd64.tar.gz
 
+  macos: 
+    name: build and release for macos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ATiltedTree/setup-rust@v1
+        with:
+          targets: $MACOS_BUILD_TARGET
+          rust-version: stable
+
+      - uses: mbround18/setup-osxcross@v1
+        with:
+          osx-version: "12.3"
+
+      - name: checkout sources
+        uses: actions/checkout@v2
+      
+      - name: build
+        run: cargo build --release --target $MACOS_BUILD_TARGET
+
+      - name: archive binary
+        run: tar -czvf kofr-linux-amd64.tar.gz -C ./target/$LINUX_BUILD_TARGET/release $BINARY_NAME
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kofr-darwin
+          path: kofr-darwin.tar.gz
+
   publish:
     needs: linux
     runs-on: ubuntu-latest
@@ -44,4 +71,6 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files: kofr-linux-amd64.tar.gz
+          files: |
+            kofr-linux-amd64.tar.gz
+            kofr-darwin.tar.gz
