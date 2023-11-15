@@ -37,23 +37,21 @@ jobs:
     name: build and release for macos
     runs-on: ubuntu-latest
     steps:
-      - uses: ATiltedTree/setup-rust@v1
-        with:
-          targets: $MACOS_BUILD_TARGET
-          rust-version: stable
-
-      - uses: mbround18/setup-osxcross@v1
-        with:
-          osx-version: "12.3"
-
       - name: checkout sources
         uses: actions/checkout@v2
       
+      - name: install rustup toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: $MACOS_BUILD_TARGET
+      
       - name: build
-        run: cargo build --release --target $MACOS_BUILD_TARGET
+        run: |
+          ./ci/build_macos.sh
+        shell: bash
 
       - name: archive binary
-        run: tar -czvf kofr-linux-amd64.tar.gz -C ./target/$LINUX_BUILD_TARGET/release $BINARY_NAME
+        run: tar -czvf kofr-darwin.tar.gz -C ./target/$MACOS_BUILD_TARGET/release $BINARY_NAME
       
       - uses: actions/upload-artifact@v3
         with:
@@ -61,12 +59,16 @@ jobs:
           path: kofr-darwin.tar.gz
 
   publish:
-    needs: linux
+    needs: [linux, macos]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v2
         with:
           name: kofr-linux
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: kofr-darwin
 
       - name: Release
         uses: softprops/action-gh-release@v1
