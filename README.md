@@ -106,10 +106,10 @@ $ kofr cn edit <connector-name>
 Restarting, pausing and resuming a connector.
 
 ```bash
-$ kofr cn edit <connector-name>
+$ kofr cn restart <connector-name>
 # alternatively, you can specify tasks options
-$ kofr cn edit <connector-name> --include-tasks
-$ kofr cn edit <connector-name> --only-failed
+$ kofr cn restart <connector-name> --include-tasks
+$ kofr cn restart <connector-name> --only-failed
 
 $ kofr cn pause <connector-name>
 $ kofr cn resume <connector-name>
