@@ -180,7 +180,7 @@ By default, kofr reads config from `~/.kofr/config` See [examples](https://githu
 # Contributions
 
 I welcome fixes for bugs or better ways of doing things or more importantly, code reviews. Kofr was made by the motivation of solving a problem when having to deal with multiple kafka connect clusters at my work was mundane and more importantly, learning rust wink-wink. I use it personally like I use kubectl or kaf.
-See [issues](https://github.com/A-Fayez/kofr) for things I'd like to improve. If you have a question about the codebase or simply want to discuss something feel free to open an issue. See also [kcmockserver](https://github.com/A-Fayez/kcmockserver) which I used in testing kofr. It's incomplete and could use some contributions.
+See [issues](https://github.com/A-Fayez/kofr/issues) for things I'd like to improve. If you have a question about the codebase or simply want to discuss something feel free to open an issue. See also [kcmockserver](https://github.com/A-Fayez/kcmockserver) which I used in testing kofr. It's incomplete and could use some contributions.
 
 # Related Projects
 
