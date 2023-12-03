@@ -124,6 +124,8 @@ pub enum ConnectorAction {
     Restart(Restart),
     /// delete a connector, halting all tasks and deleting its configuration.
     Delete(Delete),
+    /// patches a connector configuration with provided
+    Patch(Patch),
 }
 
 #[derive(Args, Debug)]
@@ -165,6 +167,13 @@ pub struct Resume {
 #[derive(Args, Debug)]
 pub struct Delete {
     pub name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct Patch {
+    pub name: String,
+    #[arg(short = 'd', long = "data")]
+    pub data: String,
 }
 
 #[derive(Args, Debug)]
@@ -275,6 +284,16 @@ impl Create {
             &create_connector.name.0
         );
         println!("{}", response);
+        Ok(())
+    }
+}
+
+impl Patch {
+    pub fn run(self, connect_client: HTTPClient) -> Result<()> {
+        let new_config = self.data;
+        let new_config = serde_json::from_str(&new_config).context("invalid config format")?;
+        connect_client.put_connector(&self.name, new_config)?;
+        println!("successfully patched connector: '{}'", &self.name);
         Ok(())
     }
 }

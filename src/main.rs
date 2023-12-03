@@ -85,6 +85,7 @@ fn main() -> Result<()> {
             ConnectorAction::Resume(resume) => resume.run(client)?,
             ConnectorAction::Restart(restart) => restart.run(client)?,
             ConnectorAction::Delete(delete) => delete.run(client)?,
+            ConnectorAction::Patch(patch) => patch.run(client)?,
         },
         Action::Task(task) => match task {
             Task::List(list) => list.run(uri)?,
