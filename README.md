@@ -115,6 +115,11 @@ $ kofr cn pause <connector-name>
 $ kofr cn resume <connector-name>
 ```
 
+Patch a running connector with new configuration
+```bash
+$ kofr cn patch test-connector -d '{"file": "config/server.properties","name": "load-kafka-config","connector.class": "FileStreamSource","topic": "kafka-config-topic"'
+```
+
 Delete a running connector
 
 ```bash
